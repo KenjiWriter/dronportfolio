@@ -1,6 +1,7 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { route } from 'ziggy-js';
 import ProjectCard from '@/components/ProjectCard.vue';
 import MediaModal from '@/components/MediaModal.vue';
 import ApplicationLogo from '@/components/AppLogo.vue'; 
@@ -8,12 +9,30 @@ import HeroLens from '@/components/HeroLens.vue';
 import FloatingDrone from '@/components/FloatingDrone.vue';
 
 const props = defineProps({
-    projects: Object, // Expecting a Resource collection or paginator
+    projects: Object,
 });
+
+const page = usePage();
+const flashSuccess = computed(() => page.props.flash?.success);
 
 const videoLoaded = ref(false);
 const showModal = ref(false);
 const selectedProject = ref(null);
+
+// Contact form
+const form = useForm({
+    name: '',
+    email: '',
+    phone: '',
+    message: '',
+});
+
+const submitContact = () => {
+    form.post(route('contact.store'), {
+        preserveScroll: true,
+        onSuccess: () => form.reset(),
+    });
+};
 
 const handleVideoLoaded = () => {
     videoLoaded.value = true;
@@ -24,9 +43,6 @@ const openProject = (project) => {
         selectedProject.value = project;
         showModal.value = true;
     } else {
-        // Fallback for single item viewing if we wanted to redirect
-        // window.location.href = route('project.show', project.slug);
-        // For now, modal is preferred for all as per instruction "Single Item: Opens media directly in lightbox" (Modal is a lightbox)
         selectedProject.value = project;
         showModal.value = true;
     }
@@ -36,7 +52,7 @@ const closeModal = () => {
     showModal.value = false;
     setTimeout(() => {
         selectedProject.value = null;
-    }, 300); // Clear after transition
+    }, 300);
 };
 
 const scrollToSection = (sectionId) => {
@@ -143,62 +159,95 @@ const scrollToSection = (sectionId) => {
         </div>
 
         <!-- Contact Section -->
-        <div id="contact" class="relative py-24 bg-gray-800 border-t border-gray-700">
-             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-16">
-                    <!-- Info -->
-                    <div>
-                        <h2 class="text-3xl md:text-4xl font-bold text-white mb-8 font-manrope">Rozpocznijmy Współpracę</h2>
-                        <p class="text-gray-400 mb-8 text-lg leading-relaxed">
-                            Masz pomysł na ujęcie z powietrza? Potrzebujesz profesjonalnego wideo promocyjnego?
-                            Skontaktuj się ze mną. Konsultacje są zawsze darmowe.
-                        </p>
-                        
-                        <div class="space-y-6">
-                            <div class="flex items-start">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                </div>
-                                <div class="ml-4">
-                                    <h3 class="text-lg font-medium text-white">Lokalizacja</h3>
-                                    <p class="mt-1 text-gray-400">Warszawa, Polska</p>
-                                    <p class="mt-1 text-sm text-blue-400">Koszty dojazdu w cenie na terenie woj. Mazowieckiego.</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Phone/Email placeholders or real data if available -->
-                        </div>
-                    </div>
-
-                    <!-- Form Trigger (Placeholder / To Implement logic later if separate component desired) -->
-                    <div class="bg-gray-900 p-8 rounded-2xl shadow-xl border border-gray-700">
-                        <form @submit.prevent="console.log('Form submission to be implemented via LeadController')" class="space-y-6">
-                            <div>
-                                <label for="name" class="block text-sm font-medium text-gray-400">Imię i Nazwisko</label>
-                                <input type="text" id="name" class="mt-1 block w-full bg-gray-800 border-gray-600 rounded-md text-white focus:ring-blue-500 focus:border-blue-500" placeholder="Jan Kowalski" />
-                            </div>
-                            
-                             <div>
-                                <label for="contact" class="block text-sm font-medium text-gray-400">Telefon / Email</label>
-                                <input type="text" id="contact" class="mt-1 block w-full bg-gray-800 border-gray-600 rounded-md text-white focus:ring-blue-500 focus:border-blue-500" placeholder="+48 123 456 789" />
-                            </div>
-
-                            <div>
-                                <label for="message" class="block text-sm font-medium text-gray-400">Wiadomość</label>
-                                <textarea id="message" rows="4" class="mt-1 block w-full bg-gray-800 border-gray-600 rounded-md text-white focus:ring-blue-500 focus:border-blue-500" placeholder="Opisz swój projekt..."></textarea>
-                            </div>
-
-                            <button type="button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-md hover:bg-blue-700 transition duration-300">
-                                Wyślij Wiadomość
-                            </button>
-                        </form>
-                    </div>
+        <section id="contact" class="relative py-24 px-6 z-20 bg-gray-900">
+            <div class="max-w-3xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight font-manrope">Napisz do nas</h2>
+                    <div class="w-24 h-1 bg-blue-600 mx-auto rounded-full mb-6"></div>
+                    <p class="text-gray-400 text-lg max-w-xl mx-auto">
+                        Darmowe konsultacje. Koszty dojazdu w cenie na terenie woj. mazowieckiego.
+                    </p>
                 </div>
-             </div>
-        </div>
+
+                <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 md:p-12 shadow-2xl">
+                    
+                    <!-- Flash Success -->
+                    <Transition
+                        enter-active-class="transition duration-300 ease-out"
+                        enter-from-class="opacity-0 -translate-y-2"
+                        enter-to-class="opacity-100 translate-y-0"
+                        leave-active-class="transition duration-200 ease-in"
+                        leave-from-class="opacity-100 translate-y-0"
+                        leave-to-class="opacity-0 -translate-y-2"
+                    >
+                        <div v-if="flashSuccess" class="mb-8 p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-200 text-center text-sm font-medium">
+                            {{ flashSuccess }}
+                        </div>
+                    </Transition>
+
+                    <form @submit.prevent="submitContact" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-white/70 text-sm font-bold mb-2 tracking-wide">Imię i Nazwisko</label>
+                                <input 
+                                    v-model="form.name" 
+                                    type="text" 
+                                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 transition-all duration-300"
+                                    placeholder="Jan Kowalski"
+                                >
+                                <div v-if="form.errors.name" class="text-red-400 text-xs mt-1.5 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                                    {{ form.errors.name }}
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-white/70 text-sm font-bold mb-2 tracking-wide">E-mail</label>
+                                <input 
+                                    v-model="form.email" 
+                                    type="email" 
+                                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 transition-all duration-300"
+                                    placeholder="jan@firma.pl"
+                                >
+                                <div v-if="form.errors.email" class="text-red-400 text-xs mt-1.5 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                                    {{ form.errors.email }}
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-white/70 text-sm font-bold mb-2 tracking-wide">Telefon <span class="text-white/30 font-normal">(opcjonalnie)</span></label>
+                            <input 
+                                v-model="form.phone" 
+                                type="text" 
+                                class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 transition-all duration-300"
+                                placeholder="+48 123 456 789"
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-white/70 text-sm font-bold mb-2 tracking-wide">Wiadomość</label>
+                            <textarea 
+                                v-model="form.message" 
+                                rows="5" 
+                                class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 transition-all duration-300 resize-none"
+                                placeholder="Opisz swój projekt..."
+                            ></textarea>
+                            <div v-if="form.errors.message" class="text-red-400 text-xs mt-1.5 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                                {{ form.errors.message }}
+                            </div>
+                        </div>
+                        <button 
+                            type="submit" 
+                            :disabled="form.processing" 
+                            class="group relative w-full px-8 py-4 rounded-xl bg-white text-black font-bold uppercase tracking-widest text-sm overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span class="relative z-10">{{ form.processing ? 'Wysyłanie...' : 'Wyślij Wiadomość' }}</span>
+                            <div class="absolute inset-0 bg-gray-200 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
 
         <!-- Footer -->
         <footer class="bg-black py-12 border-t border-gray-800">

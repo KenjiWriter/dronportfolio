@@ -3,22 +3,22 @@
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
+use App\Models\Lead;
 use Illuminate\Http\Request;
 
 class ContactController extends Controller
 {
-    public function store(\Illuminate\Http\Request $request)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'company_name' => 'nullable|string|max:255',
-            'location' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'email' => 'required|email|max:255',
+            'phone' => 'nullable|string|max:20',
             'message' => 'required|string',
         ]);
 
-        \App\Models\Lead::create($validated);
+        Lead::create($validated);
 
-        return redirect()->back()->with('success', 'Wiadomość została wysłana pomyślnie.');
+        return redirect()->back()->with('success', 'Wiadomość została wysłana. Skontaktujemy się wkrótce!');
     }
 }
