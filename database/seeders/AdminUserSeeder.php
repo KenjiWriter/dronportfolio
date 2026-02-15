@@ -14,7 +14,7 @@ class AdminUserSeeder extends Seeder
     {
         \App\Models\User::create([
             'name' => 'Admin',
-            'email' => 'admin@lukaszhil.pl',
+            'email' => 'admin@horizonshot.pl',
             'password' => \Illuminate\Support\Facades\Hash::make('password'),
         ]);
     }

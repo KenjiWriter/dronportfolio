@@ -20,7 +20,7 @@ class ProjectResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'is_catalog' => $this->is_catalog,
-            'cover_image_url' => \Illuminate\Support\Facades\Storage::url($this->cover_image_path),
+            'cover_image_path' => $this->cover_image_path,
             'media' => ProjectMediaResource::collection($this->whenLoaded('media')),
             'created_at' => $this->created_at,
         ];

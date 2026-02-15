@@ -15,9 +15,13 @@ createInertiaApp({
         return pages[`./Pages/${name}.vue`];
     },
     setup({ el, App, props, plugin }) {
+        const Ziggy = props.initialPage.props.ziggy;
+        // @ts-expect-error - Ziggy is not defined on window in TS types
+        window.Ziggy = Ziggy;
+
         createApp({ render: () => h(App, props) })
             .use(plugin)
-            .use(ZiggyVue)
+            .use(ZiggyVue, Ziggy)
             .mount(el);
     },
     progress: {
