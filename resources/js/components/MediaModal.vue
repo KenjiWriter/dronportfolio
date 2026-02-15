@@ -7,42 +7,28 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const isLoaded = ref(false);
 
 // Prevent scrolling on body when modal is open
 watch(() => props.show, (val) => {
     if (val) {
         document.body.style.overflow = 'hidden';
+        setTimeout(() => isLoaded.value = true, 50);
     } else {
         document.body.style.overflow = '';
+        isLoaded.value = false;
     }
 });
-
-const zoomedImage = ref(null);
-
-const openZoom = (url) => {
-    zoomedImage.value = url;
-};
-
-const closeZoom = () => {
-    zoomedImage.value = null;
-};
 
 const close = () => {
     emit('close');
     document.body.style.overflow = ''; 
-    zoomedImage.value = null;
+    isLoaded.value = false;
 };
 </script>
 
 <template>
-    <transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
+    <transition name="modal-fade">
         <div v-if="show" class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-95 backdrop-blur-md" @click.self="close">
             
             <!-- Sticky Header -->
@@ -57,9 +43,9 @@ const close = () => {
             </div>
 
             <!-- Content Container -->
-            <div class="px-4 py-8 flex flex-col items-center justify-center">
+            <div class="px-4 py-8 flex flex-col items-center justify-center pointer-events-none">
                  
-                 <div class="w-full max-w-6xl mx-auto space-y-12">
+                 <div class="w-full max-w-6xl mx-auto space-y-12 pointer-events-auto">
                     
                     <!-- Description -->
                     <div v-if="project?.description" class="text-center max-w-3xl mx-auto">
@@ -68,13 +54,13 @@ const close = () => {
 
                     <!-- Gallery Grid/Stack -->
                     <div v-if="project?.media && project.media.length > 0" class="space-y-24">
-                         <div v-for="media in project.media" :key="media.id" class="flex justify-center w-full">
+                         <div v-for="(media, index) in project.media" :key="media.id" class="flex justify-center w-full">
                             <div class="relative w-full rounded-lg overflow-hidden shadow-2xl bg-gray-900 border border-gray-800 transition-transform duration-500 hover:scale-[1.01]">
                                  <img 
                                     v-if="media.type === 'image'" 
                                     :src="media.url" 
-                                    class="w-full h-auto object-contain max-h-[85vh] cursor-zoom-in" 
-                                    @click.stop="openZoom(media.url)"
+                                    :class="['transition-all duration-700 ease-out transform w-full h-auto object-contain max-h-[85vh]', isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12']"
+                                    :style="{ transitionDelay: `${index * 100}ms` }"
                                 />
                                  <video v-else controls class="w-full h-auto max-h-[85vh]">
                                      <source :src="media.url" type="video/mp4">
@@ -98,14 +84,6 @@ const close = () => {
                  </div>
             </div>
 
-            <!-- Zoom Overlay -->
-            <div v-if="zoomedImage" class="fixed inset-0 z-[999] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out" @click="closeZoom">
-                <img :src="zoomedImage" class="max-w-full max-h-full object-contain shadow-2xl rounded-sm" />
-                <button class="fixed top-6 right-6 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-80 z-[1000]" @click="closeZoom">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-
         </div>
     </transition>
 </template>
@@ -113,5 +91,14 @@ const close = () => {
 <style scoped>
 .font-manrope {
     font-family: 'Manrope', 'Inter', sans-serif;
+}
+
+.modal-fade-enter-active, .modal-fade-leave-active {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-fade-enter-from, .modal-fade-leave-to {
+    opacity: 0;
+    backdrop-filter: blur(0px);
 }
 </style>

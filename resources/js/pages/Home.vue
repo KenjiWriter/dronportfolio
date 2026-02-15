@@ -3,7 +3,8 @@ import { Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import MediaModal from '@/components/MediaModal.vue';
-import ApplicationLogo from '@/components/AppLogo.vue'; // Check if AppLogo exists, list showed AppLogo.vue
+import ApplicationLogo from '@/components/AppLogo.vue'; 
+import HeroLens from '@/components/HeroLens.vue';
 
 const props = defineProps({
     projects: Object, // Expecting a Resource collection or paginator
@@ -60,21 +61,40 @@ const closeModal = () => {
             <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-gray-900 z-10"></div>
 
             <div class="relative z-20 flex flex-col items-center justify-center h-full text-center px-4">
-                <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 text-white drop-shadow-2xl opacity-0 animate-fade-in-up">
-                    <span class="block text-blue-500 text-lg md:text-2xl font-light tracking-[0.3em] uppercase mb-4">Aerial Cinematography & Visuals</span>
-                    HORIZONSHOT
-                </h1>
-                <p class="text-lg md:text-xl text-gray-300 font-light max-w-2xl mx-auto mb-10 opacity-0 animate-fade-in-up animation-delay-300 leading-relaxed">
+                
+                <div class="animate-float-slow relative z-10 flex flex-col items-center text-center font-black tracking-tighter select-none">
+    
+                    <h1 class="text-[5rem] md:text-[10rem] leading-none" 
+                        style="color: rgba(255, 255, 255, 0.05); -webkit-text-stroke: 3px rgba(255, 255, 255, 0.9); text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);">
+                        HORIZON
+                    </h1>
+                    
+                    <div class="flex items-center justify-center text-[5rem] md:text-[10rem] leading-none md:-mt-6">
+                        <span style="color: rgba(255, 255, 255, 0.05); -webkit-text-stroke: 3px rgba(255, 255, 255, 0.9); text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);">
+                            SH
+                        </span>
+                        
+                        <HeroLens class="inline-block w-[0.8em] h-[0.8em] mx-1 md:mx-3" />
+                        
+                        <span style="color: rgba(255, 255, 255, 0.05); -webkit-text-stroke: 3px rgba(255, 255, 255, 0.9); text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);">
+                            T
+                        </span>
+                    </div>
+
+                </div>
+
+                <p class="mt-12 text-lg md:text-xl text-gray-300 font-light max-w-2xl mx-auto mb-10 opacity-0 animate-fade-in-up animation-delay-300 leading-relaxed drop-shadow-md">
                     Profesjonalne usługi dronowe, fotografia produktowa i montaż wideo.
                     <br class="hidden md:block" />
                     Tworzymy perspektywę, której potrzebujesz.
                 </p>
                 
                 <div class="flex flex-col sm:flex-row gap-6 opacity-0 animate-fade-in-up animation-delay-600">
-                    <a href="#portfolio" class="px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-gray-200 hover:scale-105 transition-all duration-300 shadow-lg uppercase tracking-widest text-sm">
-                        Zobacz Portfolio
+                    <a href="#portfolio" class="group relative px-8 py-4 bg-white text-black font-bold rounded-full overflow-hidden transition-all duration-300 hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                        <span class="relative z-10 uppercase tracking-widest text-sm">Zobacz Portfolio</span>
+                        <div class="absolute inset-0 bg-gray-200 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
                     </a>
-                    <a href="#contact" class="px-8 py-4 border border-white/30 backdrop-blur-sm text-white font-bold rounded-full hover:bg-white/10 hover:border-white transition-all duration-300 uppercase tracking-widest text-sm">
+                    <a href="#contact" class="px-8 py-4 border border-white/30 backdrop-blur-sm text-white font-bold rounded-full hover:bg-white/10 hover:border-white transition-all duration-300 uppercase tracking-widest text-sm shadow-lg">
                         Skontaktuj się
                     </a>
                 </div>
