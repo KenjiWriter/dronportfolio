@@ -37,6 +37,16 @@ const closeModal = () => {
         selectedProject.value = null;
     }, 300); // Clear after transition
 };
+
+const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+        element.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start' 
+        });
+    }
+};
 </script>
 
 <template>
@@ -90,11 +100,11 @@ const closeModal = () => {
                 </p>
                 
                 <div class="flex flex-col sm:flex-row gap-6 opacity-0 animate-fade-in-up animation-delay-600">
-                    <a href="#portfolio" class="group relative px-8 py-4 bg-white text-black font-bold rounded-full overflow-hidden transition-all duration-300 hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                    <a href="#portfolio" @click.prevent="scrollToSection('portfolio')" class="group relative px-8 py-4 bg-white text-black font-bold rounded-full overflow-hidden transition-all duration-300 hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]">
                         <span class="relative z-10 uppercase tracking-widest text-sm">Zobacz Portfolio</span>
                         <div class="absolute inset-0 bg-gray-200 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
                     </a>
-                    <a href="#contact" class="px-8 py-4 border border-white/30 backdrop-blur-sm text-white font-bold rounded-full hover:bg-white/10 hover:border-white transition-all duration-300 uppercase tracking-widest text-sm shadow-lg">
+                    <a href="#contact" @click.prevent="scrollToSection('contact')" class="px-8 py-4 border border-white/30 backdrop-blur-sm text-white font-bold rounded-full hover:bg-white/10 hover:border-white transition-all duration-300 uppercase tracking-widest text-sm shadow-lg">
                         Skontaktuj się
                     </a>
                 </div>
