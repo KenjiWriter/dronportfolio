@@ -5,6 +5,7 @@ import ProjectCard from '@/components/ProjectCard.vue';
 import MediaModal from '@/components/MediaModal.vue';
 import ApplicationLogo from '@/components/AppLogo.vue'; 
 import HeroLens from '@/components/HeroLens.vue';
+import FloatingDrone from '@/components/FloatingDrone.vue';
 
 const props = defineProps({
     projects: Object, // Expecting a Resource collection or paginator
@@ -84,7 +85,9 @@ const scrollToSection = (sectionId) => {
                             SH
                         </span>
                         
-                        <HeroLens class="inline-block w-[0.8em] h-[0.8em] mx-1 md:mx-3" />
+                        <span id="hero-lens-origin" class="inline-block mx-1 md:mx-3">
+                            <HeroLens class="w-[0.8em] h-[0.8em]" />
+                        </span>
                         
                         <span style="color: rgba(255, 255, 255, 0.05); -webkit-text-stroke: 3px rgba(255, 255, 255, 0.9); text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);">
                             T
@@ -216,6 +219,9 @@ const scrollToSection = (sectionId) => {
             :project="selectedProject" 
             @close="closeModal" 
         />
+        
+        <!-- Easter Egg -->
+        <FloatingDrone />
     </div>
 </template>
 
