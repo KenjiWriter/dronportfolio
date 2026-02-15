@@ -99,9 +99,9 @@ const close = () => {
             </div>
 
             <!-- Zoom Overlay -->
-            <div v-if="zoomedImage" class="fixed inset-0 z-[60] bg-black bg-opacity-95 flex items-center justify-center p-4 cursor-zoom-out" @click="closeZoom">
+            <div v-if="zoomedImage" class="fixed inset-0 z-[999] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out" @click="closeZoom">
                 <img :src="zoomedImage" class="max-w-full max-h-full object-contain shadow-2xl rounded-sm" />
-                <button class="absolute top-6 right-6 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-80" @click="closeZoom">
+                <button class="fixed top-6 right-6 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-80 z-[1000]" @click="closeZoom">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
