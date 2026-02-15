@@ -14,6 +14,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('projects', \App\Http\Controllers\Admin\ProjectController::class);
+    Route::delete('/project-media/{projectMedia}', [\App\Http\Controllers\Admin\ProjectMediaController::class, 'destroy'])->name('project-media.destroy');
 
     Route::get('/leads', [\App\Http\Controllers\Admin\LeadController::class, 'index'])->name('leads.index');
     Route::patch('/leads/{lead}', [\App\Http\Controllers\Admin\LeadController::class, 'update'])->name('leads.update');

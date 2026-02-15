@@ -189,8 +189,13 @@ class ProjectController extends Controller
 
     public function destroy(\App\Models\Project $project)
     {
-        // Optional: delete files on destroy
-        // File::deleteDirectory(public_path("Projekty/portfolio/{$project->slug}"));
+        $clientSlug = 'portfolio'; // Consistent with store/update
+        $projectPath = public_path("Projekty/{$clientSlug}/{$project->slug}");
+
+        if (File::exists($projectPath)) {
+            File::deleteDirectory($projectPath);
+        }
+
         $project->delete();
         return redirect()->route('admin.projects.index')->with('success', 'Projekt został usunięty.');
     }

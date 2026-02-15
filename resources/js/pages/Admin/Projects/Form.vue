@@ -1,12 +1,18 @@
 <script setup>
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Head, useForm, Link } from '@inertiajs/vue3';
+import { Head, useForm, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { route } from 'ziggy-js';
 
 const props = defineProps({
     project: Object, // Optional, for Edit mode
 });
+
+const deleteMedia = (media) => {
+    if (confirm('Czy na pewno chcesz usunąć ten plik?')) {
+        router.delete(route('project-media.destroy', media.id));
+    }
+};
 
 const isEdit = !!props.project;
 
@@ -110,13 +116,20 @@ const submit = () => {
                         </div>
 
                         <!-- Current Gallery Preview (Edit Mode) -->
+                        <!-- Current Gallery Preview (Edit Mode) -->
                         <div v-if="isEdit && props.project.data.media && props.project.data.media.length > 0" class="mt-4">
-                             <h3 class="text-sm font-medium text-gray-300 mb-2">Obecna Galeria</h3>
-                             <div class="grid grid-cols-4 gap-4">
+                             <h3 class="text-sm font-medium text-gray-300 mb-2">Obecna Galeria ({{ props.project.data.media.length }} plików)</h3>
+                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                                  <div v-for="media in props.project.data.media" :key="media.id" class="relative group aspect-square bg-black rounded overflow-hidden border border-gray-700">
-                                     <img v-if="media.file_type === 'image'" :src="'/' + media.file_path" class="w-full h-full object-cover" />
-                                     <video v-else :src="'/' + media.file_path" class="w-full h-full object-cover"></video>
-                                     <!-- Deletion logic could be added here later -->
+                                     <img v-if="media.type === 'image'" :src="media.url" class="w-full h-full object-cover" />
+                                     <video v-else :src="media.url" class="w-full h-full object-cover"></video>
+                                     
+                                     <!-- Delete Overlay -->
+                                     <button @click.prevent="deleteMedia(media)" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-opacity-75 text-white">
+                                         <span class="bg-red-600 p-2 rounded-full">
+                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                         </span>
+                                     </button>
                                  </div>
                              </div>
                         </div>

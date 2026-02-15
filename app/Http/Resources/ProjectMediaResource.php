@@ -16,8 +16,8 @@ class ProjectMediaResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'url' => \Illuminate\Support\Facades\Storage::url($this->file_path),
-            'type' => $this->file_type,
+            'url' => asset($this->file_path),
+            'type' => $this->type, // Uses the accessor
             'sort_order' => $this->sort_order,
         ];
     }

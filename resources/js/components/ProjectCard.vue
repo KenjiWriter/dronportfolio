@@ -23,20 +23,19 @@ const handleClick = () => {
         @click="handleClick"
     >
         <!-- Stack Layers (Ghost Images) -->
+        <!-- Stack Layers (Ghost Images) -->
         <div v-if="galleryStack.length > 0" 
-             class="absolute inset-0 bg-gray-800 rounded-xl transform translate-y-3 scale-95 opacity-50 transition-all duration-300 group-hover:translate-y-4 group-hover:scale-90 group-hover:opacity-40 z-0 border border-gray-700 shadow-xl overflow-hidden" 
-             style="transform-style: preserve-3d;">
+             class="absolute inset-0 bg-gray-800 rounded-xl transform translate-x-2 translate-y-1 rotate-3 opacity-60 transition-all duration-500 group-hover:translate-x-4 group-hover:translate-y-2 group-hover:rotate-6 z-0 border border-gray-700 shadow-xl overflow-hidden pointer-events-none">
                <!-- First ghost -->
-             <img v-if="galleryStack[0].file_type === 'image'" :src="'/' + galleryStack[0].file_path" class="w-full h-full object-cover blur-sm brightness-50" />
-              <video v-else :src="'/' + galleryStack[0].file_path" class="w-full h-full object-cover blur-sm brightness-50"></video>
+             <img v-if="galleryStack[0].type === 'image'" :src="galleryStack[0].url" class="w-full h-full object-cover blur-[2px] brightness-75" />
+              <div v-else class="w-full h-full bg-gray-800 flex items-center justify-center"><svg class="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></div>
         </div>
         
         <div v-if="galleryStack.length > 1" 
-             class="absolute inset-0 bg-gray-700 rounded-xl transform translate-y-6 scale-90 opacity-30 transition-all duration-300 group-hover:translate-y-8 group-hover:scale-85 group-hover:opacity-20 -z-10 border border-gray-600 shadow-2xl overflow-hidden"
-             style="transform-style: preserve-3d;">
+             class="absolute inset-0 bg-gray-800 rounded-xl transform -translate-x-1 -rotate-2 opacity-40 transition-all duration-500 group-hover:-translate-x-3 group-hover:-rotate-4 -z-10 border border-gray-600 shadow-xl overflow-hidden pointer-events-none">
              <!-- Second ghost -->
-             <img v-if="galleryStack[1].file_type === 'image'" :src="'/' + galleryStack[1].file_path" class="w-full h-full object-cover blur-md brightness-50" />
-              <video v-else :src="'/' + galleryStack[1].file_path" class="w-full h-full object-cover blur-md brightness-50"></video>
+             <img v-if="galleryStack[1].type === 'image'" :src="galleryStack[1].url" class="w-full h-full object-cover blur-[3px] brightness-50" />
+              <div v-else class="w-full h-full bg-gray-800 flex items-center justify-center"><svg class="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></div>
         </div>
 
         <!-- Main Card -->

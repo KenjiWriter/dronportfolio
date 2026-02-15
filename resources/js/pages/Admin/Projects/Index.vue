@@ -1,10 +1,17 @@
 <script setup>
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 
 defineProps({
     projects: Object,
 });
+
+const confirmDelete = (project) => {
+    if (confirm(`Czy na pewno chcesz usunąć projekt "${project.title}"? Tej operacji nie można cofnąć.`)) {
+        router.delete(route('admin.projects.destroy', project.id));
+    }
+};
 </script>
 
 <template>
@@ -47,7 +54,9 @@ defineProps({
                                 <Link :href="route('admin.projects.edit', project.id)" class="text-blue-400 hover:text-blue-300 font-medium text-sm">
                                     Edytuj
                                 </Link>
-                                <!-- Basic delete button if needed, but not specified in detail. Sticking to Edit as primary action. -->
+                                <button @click="confirmDelete(project)" class="text-red-400 hover:text-red-300 font-medium text-sm focus:outline-none">
+                                    Usuń
+                                </button>
                             </div>
                         </div>
                     </div>

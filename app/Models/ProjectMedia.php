@@ -17,4 +17,10 @@ class ProjectMedia extends Model
     {
         return $this->belongsTo(Project::class);
     }
+
+    public function getTypeAttribute()
+    {
+        $extension = strtolower(pathinfo($this->file_path, PATHINFO_EXTENSION));
+        return in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif']) ? 'image' : 'video';
+    }
 }
