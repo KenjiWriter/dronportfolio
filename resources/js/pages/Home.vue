@@ -159,17 +159,23 @@ const scrollToSection = (sectionId) => {
         </div>
 
         <!-- Contact Section -->
-        <section id="contact" class="relative py-24 px-6 z-20 bg-gray-900">
-            <div class="max-w-3xl mx-auto">
-                <div class="text-center mb-12">
-                    <h2 class="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight font-manrope">Napisz do nas</h2>
-                    <div class="w-24 h-1 bg-blue-600 mx-auto rounded-full mb-6"></div>
-                    <p class="text-gray-400 text-lg max-w-xl mx-auto">
-                        Darmowe konsultacje. Koszty dojazdu w cenie na terenie woj. mazowieckiego.
-                    </p>
-                </div>
+        <section id="contact" class="py-32 px-6 relative z-20 overflow-hidden">
+            
+            <div class="max-w-4xl mx-auto relative">
+                <!-- Ambient Glow -->
+                <div class="absolute -inset-4 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-[3rem] blur-3xl pointer-events-none" aria-hidden="true"></div>
 
-                <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 md:p-12 shadow-2xl">
+                <!-- Frosted Glass Card -->
+                <div class="relative bg-[#0f141e]/80 backdrop-blur-2xl border border-white/5 border-t-white/10 border-l-white/10 rounded-[2rem] p-8 md:p-14 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                    
+                    <div class="text-center mb-12">
+                        <h2 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 tracking-tight mb-4">
+                            ROZPOCZNIJMY WSPÓŁPRACĘ
+                        </h2>
+                        <p class="text-white/50 text-sm md:text-base max-w-2xl mx-auto">
+                            Masz pomysł na ujęcie z powietrza? Potrzebujesz profesjonalnego wideo promocyjnego? Skontaktuj się ze mną. Konsultacje są zawsze darmowe.
+                        </p>
+                    </div>
                     
                     <!-- Flash Success -->
                     <Transition
@@ -180,70 +186,48 @@ const scrollToSection = (sectionId) => {
                         leave-from-class="opacity-100 translate-y-0"
                         leave-to-class="opacity-0 -translate-y-2"
                     >
-                        <div v-if="flashSuccess" class="mb-8 p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-200 text-center text-sm font-medium">
+                        <div v-if="flashSuccess" class="mb-8 p-4 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-center font-medium tracking-wide">
                             {{ flashSuccess }}
                         </div>
                     </Transition>
 
                     <form @submit.prevent="submitContact" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-white/70 text-sm font-bold mb-2 tracking-wide">Imię i Nazwisko</label>
-                                <input 
-                                    v-model="form.name" 
-                                    type="text" 
-                                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 transition-all duration-300"
-                                    placeholder="Jan Kowalski"
-                                >
-                                <div v-if="form.errors.name" class="text-red-400 text-xs mt-1.5 flex items-center gap-1">
-                                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
-                                    {{ form.errors.name }}
-                                </div>
+                            <div class="group">
+                                <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">Imię i Nazwisko</label>
+                                <input v-model="form.name" type="text" placeholder="np. Jan Kowalski" 
+                                       class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-black/60 transition-all duration-300 shadow-inner">
+                                <div v-if="form.errors.name" class="text-red-400 text-xs mt-2 ml-2">{{ form.errors.name }}</div>
                             </div>
-                            <div>
-                                <label class="block text-white/70 text-sm font-bold mb-2 tracking-wide">E-mail</label>
-                                <input 
-                                    v-model="form.email" 
-                                    type="email" 
-                                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 transition-all duration-300"
-                                    placeholder="jan@firma.pl"
-                                >
-                                <div v-if="form.errors.email" class="text-red-400 text-xs mt-1.5 flex items-center gap-1">
-                                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
-                                    {{ form.errors.email }}
-                                </div>
+                            
+                            <div class="group">
+                                <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">E-mail</label>
+                                <input v-model="form.email" type="email" placeholder="jan@firma.pl" 
+                                       class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-black/60 transition-all duration-300 shadow-inner">
+                                <div v-if="form.errors.email" class="text-red-400 text-xs mt-2 ml-2">{{ form.errors.email }}</div>
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-white/70 text-sm font-bold mb-2 tracking-wide">Telefon <span class="text-white/30 font-normal">(opcjonalnie)</span></label>
-                            <input 
-                                v-model="form.phone" 
-                                type="text" 
-                                class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 transition-all duration-300"
-                                placeholder="+48 123 456 789"
-                            >
+
+                        <div class="group">
+                            <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">Telefon <span class="text-white/20 lowercase tracking-normal">(opcjonalnie)</span></label>
+                            <input v-model="form.phone" type="text" placeholder="+48 123 456 789" 
+                                   class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-black/60 transition-all duration-300 shadow-inner">
                         </div>
-                        <div>
-                            <label class="block text-white/70 text-sm font-bold mb-2 tracking-wide">Wiadomość</label>
-                            <textarea 
-                                v-model="form.message" 
-                                rows="5" 
-                                class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 transition-all duration-300 resize-none"
-                                placeholder="Opisz swój projekt..."
-                            ></textarea>
-                            <div v-if="form.errors.message" class="text-red-400 text-xs mt-1.5 flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
-                                {{ form.errors.message }}
-                            </div>
+
+                        <div class="group">
+                            <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">Wiadomość</label>
+                            <textarea v-model="form.message" rows="5" placeholder="Opisz swój projekt, wymagania lub zadaj pytanie..." 
+                                      class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-black/60 transition-all duration-300 shadow-inner resize-none"></textarea>
+                            <div v-if="form.errors.message" class="text-red-400 text-xs mt-2 ml-2">{{ form.errors.message }}</div>
                         </div>
-                        <button 
-                            type="submit" 
-                            :disabled="form.processing" 
-                            class="group relative w-full px-8 py-4 rounded-xl bg-white text-black font-bold uppercase tracking-widest text-sm overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <span class="relative z-10">{{ form.processing ? 'Wysyłanie...' : 'Wyślij Wiadomość' }}</span>
-                            <div class="absolute inset-0 bg-gray-200 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
-                        </button>
+
+                        <div class="pt-4">
+                            <button type="submit" :disabled="form.processing" 
+                                    class="w-full group relative flex items-center justify-center px-8 py-5 rounded-xl bg-white text-black font-black uppercase tracking-widest hover:bg-gray-200 transition-all duration-300 disabled:opacity-50 overflow-hidden">
+                                <div class="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                <span class="relative z-10">{{ form.processing ? 'WYSYŁANIE...' : 'WYŚLIJ WIADOMOŚĆ' }}</span>
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
