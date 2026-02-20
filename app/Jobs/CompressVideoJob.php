@@ -85,7 +85,7 @@ class CompressVideoJob implements ShouldQueue
                 ->open($this->sourceRelPath)
                 ->addFilter(function ($filters) use ($w, $h) {
                     $filters->custom(
-                        "scale=iw*min({$w}/iw\\,{$h}/ih):trunc(ow/a/2)*2,setsar=1"
+                        "scale=trunc(iw*min({$w}/iw\\,{$h}/ih)/2)*2:trunc(ih*min({$w}/iw\\,{$h}/ih)/2)*2,setsar=1"
                     );
                 })
                 ->export()
