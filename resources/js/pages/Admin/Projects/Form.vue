@@ -1,7 +1,7 @@
 <script setup>
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, useForm, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, onUnmounted } from 'vue';
 import { route } from 'ziggy-js';
 
 const props = defineProps({
@@ -17,7 +17,7 @@ const deleteMedia = (media) => {
 const isEdit = !!props.project;
 
 const form = useForm({
-    _method: isEdit ? 'PUT' : 'POST', // Spoofing for file uploads in Laravel if needed, though Inertia handles post as put fine usually, but for files sometimes POST is better + _method: PUT.
+    _method: isEdit ? 'PUT' : 'POST',
     title: props.project?.data.title ?? '',
     description: props.project?.data.description ?? '',
     is_catalog: props.project?.data.is_catalog ?? false,
@@ -25,18 +25,86 @@ const form = useForm({
     gallery_files: [],
 });
 
-// For file input clearing/preview logic if needed
+// ─── Incremental file staging ────────────────────────────────────────────────
+
+/**
+ * Each entry: { file: File, previewUrl: string|null, isVideo: boolean, id: number }
+ * previewUrl is an object URL for images, null for videos.
+ */
+const selectedMedia = ref([]);
+let _mediaIdCounter = 0;
+
 const coverInput = ref(null);
 const galleryInput = ref(null);
 
+/**
+ * Called when the file input changes.
+ * Appends new files to the staging array instead of overwriting.
+ */
+const onGalleryChange = (event) => {
+    const files = Array.from(event.target.files);
+
+    files.forEach((file) => {
+        const isVideo = file.type.startsWith('video/');
+        selectedMedia.value.push({
+            id: ++_mediaIdCounter,
+            file,
+            isVideo,
+            previewUrl: isVideo ? null : URL.createObjectURL(file),
+        });
+    });
+
+    // Reset the input so the same file(s) can be re-selected if needed
+    // and so subsequent selections append rather than trigger a "no change" skip.
+    event.target.value = '';
+};
+
+/**
+ * Remove a single staged file and free its object URL.
+ */
+const removeStagedFile = (entry) => {
+    if (entry.previewUrl) {
+        URL.revokeObjectURL(entry.previewUrl);
+    }
+    selectedMedia.value = selectedMedia.value.filter((m) => m.id !== entry.id);
+};
+
+/** Remove all staged files and revoke their object URLs. */
+const clearStagedFiles = () => {
+    selectedMedia.value.forEach((m) => {
+        if (m.previewUrl) URL.revokeObjectURL(m.previewUrl);
+    });
+    selectedMedia.value = [];
+};
+
+/** Revoke all object URLs when the component is destroyed. */
+onUnmounted(() => {
+    selectedMedia.value.forEach((m) => {
+        if (m.previewUrl) URL.revokeObjectURL(m.previewUrl);
+    });
+});
+
+/** Format bytes to a human-readable string. */
+const formatBytes = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
+
+// ─── Form submission ─────────────────────────────────────────────────────────
+
 const submit = () => {
+    // Sync the staged File objects into the Inertia form before posting.
+    form.gallery_files = selectedMedia.value.map((m) => m.file);
+
     if (isEdit) {
-        // Inertia file upload with PUT requires special handling usually (using POST with _method field)
         form.post(route('admin.projects.update', props.project.data.id), {
             forceFormData: true,
         });
     } else {
-        form.post(route('admin.projects.store'));
+        form.post(route('admin.projects.store'), {
+            forceFormData: true,
+        });
     }
 };
 </script>
@@ -99,20 +167,94 @@ const submit = () => {
 
                         <!-- Gallery Files -->
                         <div>
-                             <label class="block text-sm font-medium text-gray-300">Galeria (Zdjęcia/Wideo)</label>
-                             <p class="text-xs text-gray-500 mb-2">Możesz wybrać wiele plików naraz.</p>
-                             <input type="file" @change="form.gallery_files = $event.target.files" multiple ref="galleryInput" class="block w-full text-sm text-gray-400
-                                file:mr-4 file:py-2 file:px-4
-                                file:rounded-full file:border-0
-                                file:text-sm file:font-semibold
-                                file:bg-gray-600 file:text-white
-                                file:cursor-pointer hover:file:bg-gray-700
-                              " accept="image/*,video/*" />
-                              <div v-if="form.errors['gallery_files']" class="text-red-400 text-sm mt-1">{{ form.errors['gallery_files'] }}</div>
-                              <!-- Individual file errors if any -->
-                              <div v-for="(error, key) in form.errors" :key="key">
-                                  <div v-if="key.startsWith('gallery_files.')" class="text-red-400 text-sm mt-1">{{ error }}</div>
-                              </div>
+                            <label class="block text-sm font-medium text-gray-300">Galeria (Zdjęcia/Wideo)</label>
+                            <p class="text-xs text-gray-500 mb-2">
+                                Możesz dodawać pliki z wielu folderów — każde kliknięcie <strong>dołącza</strong> pliki do kolejki, nie nadpisuje.
+                            </p>
+
+                            <!-- File picker -->
+                            <input
+                                type="file"
+                                @change="onGalleryChange"
+                                multiple
+                                ref="galleryInput"
+                                class="block w-full text-sm text-gray-400
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-full file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-gray-600 file:text-white
+                                    file:cursor-pointer hover:file:bg-gray-700"
+                                accept="image/*,video/*"
+                            />
+
+                            <!-- Validation errors -->
+                            <div v-if="form.errors['gallery_files']" class="text-red-400 text-sm mt-1">{{ form.errors['gallery_files'] }}</div>
+                            <div v-for="(error, key) in form.errors" :key="key">
+                                <div v-if="key.startsWith('gallery_files.')" class="text-red-400 text-sm mt-1">{{ error }}</div>
+                            </div>
+
+                            <!-- ── Staging area ─────────────────────────────────────── -->
+                            <div v-if="selectedMedia.length > 0" class="mt-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-sm font-medium text-gray-300">
+                                        Kolejka do przesłania
+                                        <span class="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white">{{ selectedMedia.length }}</span>
+                                    </h3>
+                                    <button
+                                        type="button"
+                                        @click="clearStagedFiles"
+                                        class="text-xs text-red-400 hover:text-red-300 transition-colors"
+                                    >
+                                        Usuń wszystkie
+                                    </button>
+                                </div>
+
+                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                    <div
+                                        v-for="entry in selectedMedia"
+                                        :key="entry.id"
+                                        class="relative group rounded-lg overflow-hidden border border-gray-600 bg-gray-900"
+                                    >
+                                        <!-- Image preview -->
+                                        <img
+                                            v-if="!entry.isVideo"
+                                            :src="entry.previewUrl"
+                                            :alt="entry.file.name"
+                                            class="w-full aspect-square object-cover"
+                                        />
+
+                                        <!-- Video placeholder -->
+                                        <div
+                                            v-else
+                                            class="w-full aspect-square flex flex-col items-center justify-center gap-2 bg-gray-800 px-2"
+                                        >
+                                            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                                            </svg>
+                                            <span class="text-gray-400 text-[10px] text-center break-all leading-tight line-clamp-2">{{ entry.file.name }}</span>
+                                            <span class="text-gray-500 text-[10px]">{{ formatBytes(entry.file.size) }}</span>
+                                        </div>
+
+                                        <!-- File size badge (images) -->
+                                        <div v-if="!entry.isVideo" class="absolute bottom-0 left-0 right-0 bg-black/60 px-1.5 py-1 text-[10px] text-gray-300 truncate">
+                                            {{ entry.file.name }}
+                                        </div>
+
+                                        <!-- Remove button (always visible, top-right) -->
+                                        <button
+                                            type="button"
+                                            @click="removeStagedFile(entry)"
+                                            class="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                            title="Usuń"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- ─────────────────────────────────────────────────────── -->
                         </div>
 
                         <!-- Current Gallery Preview (Edit Mode) -->

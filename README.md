@@ -61,7 +61,7 @@ Follow these steps to set up the project locally:
 To access the CMS/Admin Panel, use the following credentials:
 
 -   **URL:** `/login`
--   **Email:** `admin@lukaszhil.pl`
+-   **Email:** `admin@domain.pl`
 -   **Password:** `password`
 
 ## 👨‍💻 Credits
