@@ -11,7 +11,7 @@ class HomeController extends Controller
     {
         $projects = \App\Models\Project::with([
             'media' => function ($query) {
-                $query->orderBy('sort_order')->limit(3);
+                $query->orderBy('sort_order');
             }
         ])->orderBy('created_at', 'desc')->get();
 
