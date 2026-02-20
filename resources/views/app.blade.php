@@ -1,9 +1,12 @@
+<!-- Realization: Cerasus Digital | https://cerasusdigital.pl -->
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="pl" dir="ltr" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#000000">
 
     {{-- Inline script to detect system dark mode preference and apply it immediately --}}
     <script>
@@ -24,6 +27,7 @@
     <style>
         html {
             background-color: oklch(1 0 0);
+            scroll-behavior: smooth;
         }
 
         html.dark {

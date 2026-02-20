@@ -56,11 +56,14 @@ const close = () => {
                     <div v-if="project?.media && project.media.length > 0" class="space-y-24">
                          <div v-for="(media, index) in project.media" :key="media.id" class="flex justify-center w-full">
                             <div class="relative w-full rounded-lg overflow-hidden shadow-2xl bg-gray-900 border border-gray-800 transition-transform duration-500 hover:scale-[1.01]">
-                                 <img 
-                                    v-if="media.type === 'image'" 
-                                    :src="media.url" 
+                                 <img
+                                    v-if="media.type === 'image'"
+                                    :src="media.url"
+                                    :alt="project?.title ? `${project.title} – zdjęcie ${index + 1}` : `Zdjęcie z drona ${index + 1}`"
                                     :class="['transition-all duration-700 ease-out transform w-full h-auto object-contain max-h-[85vh]', isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12']"
                                     :style="{ transitionDelay: `${index * 100}ms` }"
+                                    :loading="index === 0 ? 'eager' : 'lazy'"
+                                    decoding="async"
                                 />
                                  <video v-else controls class="w-full h-auto max-h-[85vh]">
                                      <source :src="media.url" type="video/mp4">

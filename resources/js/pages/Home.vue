@@ -4,9 +4,10 @@ import { ref, computed } from 'vue';
 import { route } from 'ziggy-js';
 import ProjectCard from '@/components/ProjectCard.vue';
 import MediaModal from '@/components/MediaModal.vue';
-import ApplicationLogo from '@/components/AppLogo.vue'; 
+import ApplicationLogo from '@/components/AppLogo.vue';
 import HeroLens from '@/components/HeroLens.vue';
 import FloatingDrone from '@/components/FloatingDrone.vue';
+import SeoJsonLd from '@/components/SeoJsonLd.vue';
 
 const props = defineProps({
     projects: Object,
@@ -14,6 +15,13 @@ const props = defineProps({
 
 const page = usePage();
 const flashSuccess = computed(() => page.props.flash?.success);
+
+// Derive the canonical base URL from Ziggy's shared props (SSR-safe)
+const appUrl = computed(() => {
+    const ziggy = page.props?.ziggy;
+    const url = ziggy?.url ?? 'https://horizonshot.pl';
+    return String(url).replace(/\/+$/, '');
+});
 
 const videoLoaded = ref(false);
 const showModal = ref(false);
@@ -67,12 +75,62 @@ const scrollToSection = (sectionId) => {
 </script>
 
 <template>
-    <Head title="Aerial Cinematography" />
+    <Head>
+        <title>Łukasz Hil – Usługi Dronowe, Fotografia Lotnicza | Mazowieckie</title>
+        <meta
+            name="description"
+            content="Profesjonalne usługi dronowe, fotografia lotnicza i montaż wideo na Mazowszu. Bezpłatne konsultacje. Koszty dojazdu wliczone w cenę w obrębie Woj. Mazowieckiego."
+        />
+        <meta
+            name="keywords"
+            content="usługi dronowe, fotografia dronowa, wideo z drona, fotografia lotnicza, Mazowieckie, Warszawa, cinematografia lotnicza, fotografia produktowa, drone services Poland"
+        />
+        <!-- Open Graph -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" :content="appUrl" />
+        <meta property="og:locale" content="pl_PL" />
+        <meta property="og:site_name" content="HorizonShot" />
+        <meta property="og:title" content="Łukasz Hil – Usługi Dronowe &amp; Fotografia Lotnicza | Mazowieckie" />
+        <meta
+            property="og:description"
+            content="Profesjonalne usługi dronowe, fotografia lotnicza i montaż wideo. Bezpłatne konsultacje. Mazowsze."
+        />
+        <meta property="og:image" :content="`${appUrl}/images/og-image.jpg`" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="HorizonShot – Fotografia i Filmowanie z Drona, Mazowieckie" />
+        <!-- Twitter Card -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Łukasz Hil – Usługi Dronowe | Mazowieckie" />
+        <meta
+            name="twitter:description"
+            content="Profesjonalne usługi dronowe, fotografia lotnicza i montaż wideo. Mazowsze."
+        />
+        <meta name="twitter:image" :content="`${appUrl}/images/og-image.jpg`" />
+        <!-- Canonical -->
+        <link rel="canonical" :href="appUrl" />
+    </Head>
+
+    <!-- JSON-LD Structured Data -->
+    <SeoJsonLd :app-url="appUrl" />
 
     <div class="bg-gray-900 text-white font-sans antialiased selection:bg-blue-500 selection:text-white">
-        
-        <!-- Hero Section -->
-        <div class="relative h-screen w-full overflow-hidden bg-black">
+
+        <!-- Skip-to-content anchor for accessibility / SEO crawlers -->
+        <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:p-4 focus:bg-white focus:text-black">
+            Przejdź do treści
+        </a>
+
+        <main id="main-content">
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- HERO SECTION                            -->
+        <!-- ═══════════════════════════════════════ -->
+        <section
+            id="hero"
+            aria-label="Sekcja główna – HorizonShot Usługi Dronowe"
+            class="relative h-screen w-full overflow-hidden bg-black"
+        >
             <video 
                 class="absolute top-0 left-0 w-full h-full object-cover z-0 transition-opacity duration-1000 ease-in-out"
                 :class="{ 'opacity-60': videoLoaded, 'opacity-0': !videoLoaded }"
@@ -90,21 +148,30 @@ const scrollToSection = (sectionId) => {
             <div class="relative z-20 flex flex-col items-center justify-center h-full text-center px-4">
                 
                 <div class="animate-float-slow relative z-10 flex flex-col items-center text-center font-black tracking-tighter select-none">
-    
-                    <h1 class="text-[5rem] md:text-[10rem] leading-none" 
+
+                    <!--
+                        The sr-only <h1> carries the full keyword-rich headline for
+                        search engines and screen-readers. The visual "HORIZONSHOT"
+                        lettering below is purely presentational (aria-hidden).
+                    -->
+                    <h1 class="sr-only">
+                        Łukasz Hil – Profesjonalne Usługi Dronowe, Fotografia Lotnicza i Montaż Wideo | Mazowieckie
+                    </h1>
+
+                    <div aria-hidden="true" class="text-[5rem] md:text-[10rem] leading-none"
                         style="color: rgba(255, 255, 255, 0.05); -webkit-text-stroke: 3px rgba(255, 255, 255, 0.9); text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);">
                         HORIZON
-                    </h1>
+                    </div>
                     
-                    <div class="flex items-center justify-center text-[5rem] md:text-[10rem] leading-none md:-mt-6">
+                    <div aria-hidden="true" class="flex items-center justify-center text-[5rem] md:text-[10rem] leading-none md:-mt-6">
                         <span style="color: rgba(255, 255, 255, 0.05); -webkit-text-stroke: 3px rgba(255, 255, 255, 0.9); text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);">
                             SH
                         </span>
-                        
+
                         <span id="hero-lens-origin" class="inline-block mx-1 md:mx-3">
                             <HeroLens class="w-[0.8em] h-[0.8em]" />
                         </span>
-                        
+
                         <span style="color: rgba(255, 255, 255, 0.05); -webkit-text-stroke: 3px rgba(255, 255, 255, 0.9); text-shadow: 0 0 25px rgba(255, 255, 255, 0.2);">
                             T
                         </span>
@@ -130,36 +197,44 @@ const scrollToSection = (sectionId) => {
             </div>
 
             <!-- Scroll Indicator -->
-            <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-20 animate-bounce opacity-70">
+            <div aria-hidden="true" class="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-20 animate-bounce opacity-70">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
             </div>
-        </div>
+        </section>
 
-        <!-- Portfolio Section -->
-        <div id="portfolio" class="relative py-24 px-4 sm:px-6 lg:px-8 bg-gray-900">
+        <!-- ═══════════════════════════════════════ -->
+        <!-- PORTFOLIO SECTION                       -->
+        <!-- ═══════════════════════════════════════ -->
+        <section id="portfolio" aria-labelledby="portfolio-heading" class="relative py-24 px-4 sm:px-6 lg:px-8 bg-gray-900">
             <div class="max-w-7xl mx-auto">
                 <div class="text-center mb-20">
-                    <h2 class="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight font-manrope">Wybrane Realizacje</h2>
+                    <h2 id="portfolio-heading" class="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight font-manrope">Wybrane Realizacje</h2>
                     <div class="w-24 h-1 bg-blue-600 mx-auto rounded-full"></div>
                 </div>
 
-                <div v-if="projects && projects.data && projects.data.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-16">
-                    <ProjectCard 
-                        v-for="project in projects.data" 
-                        :key="project.id" 
-                        :project="project" 
-                        @click="openProject"
-                    />
-                </div>
+                <ul
+                    v-if="projects && projects.data && projects.data.length > 0"
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-16 list-none p-0"
+                    aria-label="Lista realizacji"
+                >
+                    <li v-for="project in projects.data" :key="project.id">
+                        <ProjectCard
+                            :project="project"
+                            @click="openProject"
+                        />
+                    </li>
+                </ul>
                 
                 <div v-else class="text-center py-20">
                     <p class="text-gray-500 text-xl font-light">Realizacje pojawią się wkrótce.</p>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Contact Section -->
-        <section id="contact" class="py-32 px-6 relative z-20 overflow-hidden">
+        <!-- ═══════════════════════════════════════ -->
+        <!-- CONTACT SECTION                         -->
+        <!-- ═══════════════════════════════════════ -->
+        <section id="contact" aria-labelledby="contact-heading" class="py-32 px-6 relative z-20 overflow-hidden">
             
             <div class="max-w-4xl mx-auto relative">
                 <!-- Ambient Glow -->
@@ -169,7 +244,7 @@ const scrollToSection = (sectionId) => {
                 <div class="relative bg-[#0f141e]/80 backdrop-blur-2xl border border-white/5 border-t-white/10 border-l-white/10 rounded-[2rem] p-8 md:p-14 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                     
                     <div class="text-center mb-12">
-                        <h2 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 tracking-tight mb-4">
+                        <h2 id="contact-heading" class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 tracking-tight mb-4">
                             ROZPOCZNIJMY WSPÓŁPRACĘ
                         </h2>
                         <p class="text-white/50 text-sm md:text-base max-w-2xl mx-auto">
@@ -194,31 +269,31 @@ const scrollToSection = (sectionId) => {
                     <form @submit.prevent="submitContact" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="group">
-                                <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">Imię i Nazwisko</label>
-                                <input v-model="form.name" type="text" placeholder="np. Jan Kowalski" 
+                                <label for="contact-name" class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">Imię i Nazwisko</label>
+                                <input id="contact-name" v-model="form.name" type="text" placeholder="np. Jan Kowalski" autocomplete="name"
                                        class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-black/60 transition-all duration-300 shadow-inner">
-                                <div v-if="form.errors.name" class="text-red-400 text-xs mt-2 ml-2">{{ form.errors.name }}</div>
+                                <div v-if="form.errors.name" class="text-red-400 text-xs mt-2 ml-2" role="alert">{{ form.errors.name }}</div>
                             </div>
                             
                             <div class="group">
-                                <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">E-mail</label>
-                                <input v-model="form.email" type="email" placeholder="jan@firma.pl" 
+                                <label for="contact-email" class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">E-mail</label>
+                                <input id="contact-email" v-model="form.email" type="email" placeholder="jan@firma.pl" autocomplete="email"
                                        class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-black/60 transition-all duration-300 shadow-inner">
-                                <div v-if="form.errors.email" class="text-red-400 text-xs mt-2 ml-2">{{ form.errors.email }}</div>
+                                <div v-if="form.errors.email" class="text-red-400 text-xs mt-2 ml-2" role="alert">{{ form.errors.email }}</div>
                             </div>
                         </div>
 
                         <div class="group">
-                            <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">Telefon <span class="text-white/20 lowercase tracking-normal">(opcjonalnie)</span></label>
-                            <input v-model="form.phone" type="text" placeholder="+48 123 456 789" 
+                            <label for="contact-phone" class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">Telefon <span class="text-white/20 lowercase tracking-normal">(opcjonalnie)</span></label>
+                            <input id="contact-phone" v-model="form.phone" type="tel" placeholder="+48 123 456 789" autocomplete="tel"
                                    class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-black/60 transition-all duration-300 shadow-inner">
                         </div>
 
                         <div class="group">
-                            <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">Wiadomość</label>
-                            <textarea v-model="form.message" rows="5" placeholder="Opisz swój projekt, wymagania lub zadaj pytanie..." 
+                            <label for="contact-message" class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 ml-2 transition-colors group-focus-within:text-blue-400">Wiadomość</label>
+                            <textarea id="contact-message" v-model="form.message" rows="5" placeholder="Opisz swój projekt, wymagania lub zadaj pytanie..." 
                                       class="w-full bg-black/40 border border-white/5 rounded-xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-black/60 transition-all duration-300 shadow-inner resize-none"></textarea>
-                            <div v-if="form.errors.message" class="text-red-400 text-xs mt-2 ml-2">{{ form.errors.message }}</div>
+                            <div v-if="form.errors.message" class="text-red-400 text-xs mt-2 ml-2" role="alert">{{ form.errors.message }}</div>
                         </div>
 
                         <div class="pt-4">
@@ -233,7 +308,12 @@ const scrollToSection = (sectionId) => {
             </div>
         </section>
 
-        <!-- Footer -->
+        </main>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- SITE FOOTER                             -->
+        <!-- ═══════════════════════════════════════ -->
+        <!-- Realization: Cerasus Digital | https://cerasusdigital.pl -->
         <footer class="bg-black py-12 border-t border-gray-800">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="text-gray-400 text-sm">
