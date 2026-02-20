@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\CompressVideoJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -31,6 +32,7 @@ class ProjectController extends Controller
             'is_catalog' => 'boolean',
             'cover_image' => 'required|image|max:20480', // 20MB
             'gallery_files.*' => 'nullable|file|mimes:jpg,jpeg,png,mp4|max:51200', // 50MB
+            'video_qualities.*' => 'nullable|in:1080p,720p,480p',
         ]);
 
         $projectTitle = $validated['title'];
@@ -61,18 +63,44 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('gallery_files')) {
+            $videoQualities = $request->input('video_qualities', []);
+
             foreach ($request->file('gallery_files') as $index => $file) {
-                $type = str_starts_with($file->getMimeType(), 'video') ? 'video' : 'image';
-                $name = 'gallery-' . $index . '-' . time() . '.' . $file->getClientOriginalExtension();
+                $isVideo = str_starts_with($file->getMimeType(), 'video');
+                $type    = $isVideo ? 'video' : 'image';
+                $name    = 'gallery-' . $index . '-' . time() . '.' . $file->getClientOriginalExtension();
 
                 $file->move($basePath, $name);
                 $dbPath = "Projekty/{$clientSlug}/{$projectSlug}/99-ROBOCZE/{$name}";
 
-                $project->media()->create([
-                    'file_path' => $dbPath,
-                    'file_type' => $type,
-                    'sort_order' => $index,
-                ]);
+                if ($isVideo) {
+                    $quality          = $videoQualities[$index] ?? '720p';
+                    $compressedName   = 'gallery-' . $index . '-' . time() . '-compressed.mp4';
+                    $compressedDbPath = "Projekty/{$clientSlug}/{$projectSlug}/99-ROBOCZE/{$compressedName}";
+
+                    $media = $project->media()->create([
+                        'file_path'          => $dbPath,
+                        'original_file_path' => $dbPath,
+                        'file_type'          => $type,
+                        'sort_order'         => $index,
+                        'processing_status'  => 'processing',
+                        'video_quality'      => $quality,
+                    ]);
+
+                    CompressVideoJob::dispatch(
+                        $media->id,
+                        $dbPath,             // source (raw upload) relative path
+                        $compressedDbPath,   // destination relative path
+                        $quality
+                    );
+                } else {
+                    $project->media()->create([
+                        'file_path'         => $dbPath,
+                        'file_type'         => $type,
+                        'sort_order'        => $index,
+                        'processing_status' => 'ready',
+                    ]);
+                }
             }
         }
 
@@ -97,6 +125,7 @@ class ProjectController extends Controller
             'is_catalog' => 'boolean',
             'cover_image' => 'nullable|image|max:20480',
             'gallery_files.*' => 'nullable|file|mimes:jpg,jpeg,png,mp4|max:51200',
+            'video_qualities.*' => 'nullable|in:1080p,720p,480p',
         ]);
 
         $oldSlug = $project->slug;
@@ -169,18 +198,44 @@ class ProjectController extends Controller
 
         // Handle New Gallery Files
         if ($request->hasFile('gallery_files')) {
+            $videoQualities = $request->input('video_qualities', []);
+
             foreach ($request->file('gallery_files') as $index => $file) {
-                $type = str_starts_with($file->getMimeType(), 'video') ? 'video' : 'image';
-                $name = 'gallery-' . $index . '-' . time() . '.' . $file->getClientOriginalExtension();
+                $isVideo = str_starts_with($file->getMimeType(), 'video');
+                $type    = $isVideo ? 'video' : 'image';
+                $name    = 'gallery-' . $index . '-' . time() . '.' . $file->getClientOriginalExtension();
 
                 $file->move($basePath, $name);
                 $dbPath = "Projekty/{$clientSlug}/{$newSlug}/99-ROBOCZE/{$name}";
 
-                $project->media()->create([
-                    'file_path' => $dbPath,
-                    'file_type' => $type,
-                    'sort_order' => $index,
-                ]);
+                if ($isVideo) {
+                    $quality          = $videoQualities[$index] ?? '720p';
+                    $compressedName   = 'gallery-' . $index . '-' . time() . '-compressed.mp4';
+                    $compressedDbPath = "Projekty/{$clientSlug}/{$newSlug}/99-ROBOCZE/{$compressedName}";
+
+                    $media = $project->media()->create([
+                        'file_path'          => $dbPath,
+                        'original_file_path' => $dbPath,
+                        'file_type'          => $type,
+                        'sort_order'         => $index,
+                        'processing_status'  => 'processing',
+                        'video_quality'      => $quality,
+                    ]);
+
+                    CompressVideoJob::dispatch(
+                        $media->id,
+                        $dbPath,
+                        $compressedDbPath,
+                        $quality
+                    );
+                } else {
+                    $project->media()->create([
+                        'file_path'         => $dbPath,
+                        'file_type'         => $type,
+                        'sort_order'        => $index,
+                        'processing_status' => 'ready',
+                    ]);
+                }
             }
         }
 

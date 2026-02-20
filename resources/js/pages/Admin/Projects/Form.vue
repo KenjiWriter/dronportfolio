@@ -23,6 +23,7 @@ const form = useForm({
     is_catalog: props.project?.data.is_catalog ?? false,
     cover_image: null,
     gallery_files: [],
+    video_qualities: [],  // parallel array – quality per gallery_files entry
 });
 
 // ─── Incremental file staging ────────────────────────────────────────────────
@@ -51,6 +52,7 @@ const onGalleryChange = (event) => {
             file,
             isVideo,
             previewUrl: isVideo ? null : URL.createObjectURL(file),
+            quality: '720p',  // default compression quality for videos
         });
     });
 
@@ -94,8 +96,9 @@ const formatBytes = (bytes) => {
 // ─── Form submission ─────────────────────────────────────────────────────────
 
 const submit = () => {
-    // Sync the staged File objects into the Inertia form before posting.
-    form.gallery_files = selectedMedia.value.map((m) => m.file);
+    // Sync the staged File objects + their qualities into the Inertia form before posting.
+    form.gallery_files   = selectedMedia.value.map((m) => m.file);
+    form.video_qualities = selectedMedia.value.map((m) => m.isVideo ? m.quality : null);
 
     if (isEdit) {
         form.post(route('admin.projects.update', props.project.data.id), {
@@ -223,7 +226,7 @@ const submit = () => {
                                             class="w-full aspect-square object-cover"
                                         />
 
-                                        <!-- Video placeholder -->
+                                        <!-- Video placeholder + quality selector -->
                                         <div
                                             v-else
                                             class="w-full aspect-square flex flex-col items-center justify-center gap-2 bg-gray-800 px-2"
@@ -233,6 +236,21 @@ const submit = () => {
                                             </svg>
                                             <span class="text-gray-400 text-[10px] text-center break-all leading-tight line-clamp-2">{{ entry.file.name }}</span>
                                             <span class="text-gray-500 text-[10px]">{{ formatBytes(entry.file.size) }}</span>
+
+                                            <!-- ── Quality selector ── -->
+                                            <div class="w-full px-1 mt-1">
+                                                <label :for="`quality-${entry.id}`" class="block text-[9px] text-gray-500 mb-0.5 text-center">Jakość wyjściowa</label>
+                                                <select
+                                                    :id="`quality-${entry.id}`"
+                                                    v-model="entry.quality"
+                                                    class="w-full text-[10px] bg-gray-900 border border-gray-600 text-white rounded py-0.5 px-1 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                                                    @click.stop
+                                                >
+                                                    <option value="1080p">1080p – Wysoka (4 Mbps)</option>
+                                                    <option value="720p" selected>720p – Standardowa (2.5 Mbps)</option>
+                                                    <option value="480p">480p – Lekka (1 Mbps)</option>
+                                                </select>
+                                            </div>
                                         </div>
 
                                         <!-- File size badge (images) -->
@@ -264,7 +282,25 @@ const submit = () => {
                              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                                  <div v-for="media in props.project.data.media" :key="media.id" class="relative group aspect-square bg-black rounded overflow-hidden border border-gray-700">
                                      <img v-if="media.type === 'image'" :src="media.url" class="w-full h-full object-cover" />
-                                     <video v-else :src="media.url" class="w-full h-full object-cover"></video>
+                                     <video v-else-if="media.processing_status === 'ready'" :src="media.url" class="w-full h-full object-cover"></video>
+
+                                     <!-- Processing placeholder -->
+                                     <div v-else-if="media.processing_status === 'processing'" class="w-full h-full flex flex-col items-center justify-center gap-2 bg-gray-900 text-center px-2">
+                                         <svg class="w-8 h-8 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                         </svg>
+                                         <span class="text-[10px] text-blue-300">Kompresja w toku…</span>
+                                         <span v-if="media.video_quality" class="text-[9px] text-gray-500">{{ media.video_quality }}</span>
+                                     </div>
+
+                                     <!-- Failed placeholder -->
+                                     <div v-else class="w-full h-full flex flex-col items-center justify-center gap-2 bg-gray-900 text-center px-2">
+                                         <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z" />
+                                         </svg>
+                                         <span class="text-[10px] text-red-300">Błąd kompresji</span>
+                                     </div>
                                      
                                      <!-- Delete Overlay -->
                                      <button @click.prevent="deleteMedia(media)" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-opacity-75 text-white">

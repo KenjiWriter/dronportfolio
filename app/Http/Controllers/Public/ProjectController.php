@@ -12,7 +12,9 @@ class ProjectController extends Controller
         $project = \App\Models\Project::where('slug', $slug)
             ->with([
                 'media' => function ($query) {
-                    $query->orderBy('sort_order');
+                    // Only serve fully-compressed/ready media to the public
+                    $query->where('processing_status', 'ready')
+                          ->orderBy('sort_order');
                 }
             ])
             ->firstOrFail();

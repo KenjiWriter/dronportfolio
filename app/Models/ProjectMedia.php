@@ -11,6 +11,9 @@ class ProjectMedia extends Model
         'file_path',
         'file_type',
         'sort_order',
+        'processing_status',
+        'video_quality',
+        'original_file_path',
     ];
 
     public function project()

@@ -47,6 +47,14 @@ return [
             'report' => false,
         ],
 
+        // Disk that maps directly to the public/ web root.
+        // Used by CompressVideoJob so FFMpeg can read/write Projekty/ files.
+        'public_folder' => [
+            'driver' => 'local',
+            'root'   => public_path(),
+            'throw'  => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

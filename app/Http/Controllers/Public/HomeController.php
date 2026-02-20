@@ -11,7 +11,9 @@ class HomeController extends Controller
     {
         $projects = \App\Models\Project::with([
             'media' => function ($query) {
-                $query->orderBy('sort_order');
+                // Only surface fully-encoded media to the public landing page
+                $query->where('processing_status', 'ready')
+                      ->orderBy('sort_order');
             }
         ])->orderBy('created_at', 'desc')->get();
 
