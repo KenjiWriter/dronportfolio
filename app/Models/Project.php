@@ -12,6 +12,7 @@ class Project extends Model
         'description',
         'is_catalog',
         'cover_image_path',
+        'cover_thumbnail_path',
     ];
 
     public function media()

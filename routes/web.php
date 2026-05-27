@@ -8,6 +8,8 @@ use Laravel\Fortify\Features;
 Route::get('/', [\App\Http\Controllers\Public\HomeController::class, 'index'])->name('home');
 Route::post('/contact', [\App\Http\Controllers\Public\ContactController::class, 'store'])->name('contact.store');
 Route::get('/project/{slug}', [\App\Http\Controllers\Public\ProjectController::class, 'show'])->name('project.show');
+// On-demand media endpoint (called via fetch when a portfolio card is clicked)
+Route::get('/api/projects/{slug}/media', [\App\Http\Controllers\Public\ProjectMediaController::class, 'index'])->name('projects.media');
 
 // Admin Routes
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {

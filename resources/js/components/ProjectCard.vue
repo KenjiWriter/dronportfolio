@@ -3,16 +3,29 @@ import { computed } from 'vue';
 
 const props = defineProps({
     project: Object,
+    loading: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(['click']);
 
-// Get the first 2 gallery items for the stack effect
+// preview_media contains max 2 items for the stack ghost layers
 const galleryStack = computed(() => {
-    return props.project.media ? props.project.media.slice(0, 2) : [];
+    return props.project.preview_media ?? [];
+});
+
+// Use the lightweight thumbnail for the grid; fall back to the full cover image
+const coverSrc = computed(() => {
+    if (props.project.cover_thumbnail_path) {
+        return '/' + props.project.cover_thumbnail_path;
+    }
+    return '/' + props.project.cover_image_path;
 });
 
 const handleClick = () => {
+    if (props.loading) return;
     emit('click', props.project);
 };
 </script>
@@ -21,13 +34,13 @@ const handleClick = () => {
     <article
         class="group relative cursor-pointer perspective-1000"
         :aria-label="project.title ? `Projekt: ${project.title}` : 'Projekt'"
+        :aria-busy="loading"
         role="button"
         tabindex="0"
         @click="handleClick"
         @keydown.enter="handleClick"
         @keydown.space.prevent="handleClick"
     >
-        <!-- Stack Layers (Ghost Images) -->
         <!-- Stack Layers (Ghost Images) -->
         <template v-if="galleryStack.length > 0">
             <div v-for="(media, index) in galleryStack" :key="media.id"
@@ -55,8 +68,8 @@ const handleClick = () => {
         <div class="relative bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-800 transform transition-all duration-500 ease-out group-hover:-translate-y-1 group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-10 w-full aspect-[4/3] md:aspect-[3/2]">
             
             <img
-                v-if="project.cover_image_path"
-                :src="'/' + project.cover_image_path"
+                v-if="coverSrc"
+                :src="coverSrc"
                 :alt="project.title ? `${project.title} – okładka projektu` : 'Zdjęcie z drona – okładka projektu'"
                 class="w-full h-full object-cover brightness-90 group-hover:brightness-105 transition-all duration-500 ease-out transform group-hover:scale-[1.02]"
                 loading="lazy"
@@ -77,6 +90,16 @@ const handleClick = () => {
                     {{ project.title }}
                 </h3>
             </div>
+
+            <!-- Loading overlay shown while media is being fetched -->
+            <Transition name="fade">
+                <div v-if="loading" class="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <svg class="w-10 h-10 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                    </svg>
+                </div>
+            </Transition>
         </div>
     </article>
 </template>
@@ -88,4 +111,6 @@ const handleClick = () => {
 .font-manrope {
     font-family: 'Manrope', 'Inter', sans-serif;
 }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

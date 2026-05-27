@@ -26,6 +26,8 @@ const appUrl = computed(() => {
 const videoLoaded = ref(false);
 const showModal = ref(false);
 const selectedProject = ref(null);
+const selectedProjectMedia = ref([]);
+const loadingProjectId = ref(null);
 
 // Contact form
 const form = useForm({
@@ -46,13 +48,22 @@ const handleVideoLoaded = () => {
     videoLoaded.value = true;
 };
 
-const openProject = (project) => {
-    if (project.is_catalog || (project.media && project.media.length > 0)) {
+const openProject = async (project) => {
+    loadingProjectId.value = project.id;
+    try {
+        const res = await fetch(`/api/projects/${project.slug}/media`);
+        if (!res.ok) throw new Error('fetch failed');
+        const json = await res.json();
         selectedProject.value = project;
+        selectedProjectMedia.value = json.data ?? json;
         showModal.value = true;
-    } else {
+    } catch {
+        // fallback: open with empty media rather than blocking the user
         selectedProject.value = project;
+        selectedProjectMedia.value = [];
         showModal.value = true;
+    } finally {
+        loadingProjectId.value = null;
     }
 };
 
@@ -60,6 +71,7 @@ const closeModal = () => {
     showModal.value = false;
     setTimeout(() => {
         selectedProject.value = null;
+        selectedProjectMedia.value = [];
     }, 300);
 };
 
@@ -220,6 +232,7 @@ const scrollToSection = (sectionId) => {
                     <li v-for="project in projects.data" :key="project.id">
                         <ProjectCard
                             :project="project"
+                            :loading="loadingProjectId === project.id"
                             @click="openProject"
                         />
                     </li>
@@ -329,7 +342,8 @@ const scrollToSection = (sectionId) => {
         <!-- Modals -->
         <MediaModal 
             :show="showModal" 
-            :project="selectedProject" 
+            :project="selectedProject"
+            :media="selectedProjectMedia"
             @close="closeModal" 
         />
         

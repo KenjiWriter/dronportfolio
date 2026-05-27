@@ -1,107 +1,242 @@
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { useSwipe } from '@vueuse/core';
 
 const props = defineProps({
     show: Boolean,
     project: Object,
+    media: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const emit = defineEmits(['close']);
-const isLoaded = ref(false);
 
-// Prevent scrolling on body when modal is open
+const activeIndex = ref(0);
+const videoRef = ref(null);
+const carouselEl = ref(null);
+const thumbsEl = ref(null);
+
+const total = computed(() => props.media.length);
+const current = computed(() => props.media[activeIndex.value] ?? null);
+const hasPrev = computed(() => activeIndex.value > 0);
+const hasNext = computed(() => activeIndex.value < total.value - 1);
+
+// ── Swipe support ──────────────────────────────────────────────────────────
+useSwipe(carouselEl, {
+    onSwipeEnd(_, direction) {
+        if (direction === 'left') goNext();
+        if (direction === 'right') goPrev();
+    },
+});
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function pauseCurrentVideo() {
+    if (videoRef.value) {
+        videoRef.value.pause();
+    }
+}
+
+function goTo(index) {
+    if (index < 0 || index >= total.value) return;
+    pauseCurrentVideo();
+    activeIndex.value = index;
+    scrollThumbIntoView(index);
+}
+function goPrev() { goTo(activeIndex.value - 1); }
+function goNext() { goTo(activeIndex.value + 1); }
+
+// ── Thumbnail strip auto-scroll ────────────────────────────────────────────
+function scrollThumbIntoView(index) {
+    nextTick(() => {
+        const strip = thumbsEl.value;
+        if (!strip) return;
+        const thumb = strip.children[index];
+        if (thumb) thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
+}
+
+// ── Keyboard ───────────────────────────────────────────────────────────────
+function onKeydown(e) {
+    if (!props.show) return;
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); goPrev(); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+    if (e.key === 'Escape')     { close(); }
+}
+
+// ── Body scroll lock ───────────────────────────────────────────────────────
 watch(() => props.show, (val) => {
     if (val) {
+        activeIndex.value = 0;
         document.body.style.overflow = 'hidden';
-        setTimeout(() => isLoaded.value = true, 50);
     } else {
+        pauseCurrentVideo();
         document.body.style.overflow = '';
-        isLoaded.value = false;
     }
 });
 
-const close = () => {
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onUnmounted(() => {
+    window.removeEventListener('keydown', onKeydown);
+    document.body.style.overflow = '';
+});
+
+function close() {
+    pauseCurrentVideo();
     emit('close');
-    document.body.style.overflow = ''; 
-    isLoaded.value = false;
-};
+}
 </script>
 
 <template>
-    <transition name="modal-fade">
-        <div v-if="show" class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-95 backdrop-blur-md" @click.self="close">
-            
-            <!-- Sticky Header -->
-            <div class="sticky top-0 z-50 w-full bg-black bg-opacity-80 backdrop-blur-md border-b border-gray-800 transition-all duration-300">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-                     <h2 class="text-xl md:text-2xl font-bold text-white font-manrope tracking-tight truncate pr-4">{{ project?.title }}</h2>
-                     
-                     <button class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white hover:bg-opacity-10 transition-colors focus:outline-none" @click="close">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <Transition name="modal-fade">
+        <div
+            v-if="show"
+            class="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-md"
+            @click.self="close"
+        >
+            <!-- ── Header ──────────────────────────────────────────────── -->
+            <div class="flex-none w-full bg-black/80 backdrop-blur-md border-b border-gray-800">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+                    <h2 class="text-lg md:text-xl font-bold text-white font-manrope tracking-tight truncate">
+                        {{ project?.title }}
+                    </h2>
+                    <div class="flex items-center gap-4 shrink-0">
+                        <!-- Counter -->
+                        <span v-if="total > 0" class="text-gray-400 text-sm tabular-nums">
+                            {{ activeIndex + 1 }} / {{ total }}
+                        </span>
+                        <button
+                            class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+                            aria-label="Zamknij"
+                            @click="close"
+                        >
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Main viewer ────────────────────────────────────────── -->
+            <div
+                ref="carouselEl"
+                class="flex-1 min-h-0 flex items-center justify-center relative select-none overflow-hidden"
+            >
+                <!-- Empty state -->
+                <p v-if="total === 0" class="text-gray-500 italic text-center px-4">
+                    Brak mediów w tej galerii.
+                </p>
+
+                <template v-else>
+                    <!-- Slide -->
+                    <Transition name="slide-fade" mode="out-in">
+                        <div :key="activeIndex" class="flex items-center justify-center w-full h-full px-14 md:px-20">
+                            <!-- Image -->
+                            <img
+                                v-if="current?.type === 'image'"
+                                :src="current.url"
+                                :alt="project?.title ? `${project.title} – zdjęcie ${activeIndex + 1}` : `Zdjęcie ${activeIndex + 1}`"
+                                class="max-w-full max-h-[75vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
+                                loading="eager"
+                                decoding="async"
+                            />
+                            <!-- Video -->
+                            <video
+                                v-else-if="current?.type === 'video'"
+                                ref="videoRef"
+                                controls
+                                preload="metadata"
+                                class="w-full max-h-[75vh] rounded-lg shadow-2xl"
+                            >
+                                <source :src="current.url" type="video/mp4" />
+                            </video>
+                        </div>
+                    </Transition>
+
+                    <!-- Prev button -->
+                    <button
+                        v-if="hasPrev"
+                        class="absolute left-2 md:left-4 p-3 rounded-full bg-black/60 text-white hover:bg-white/20 transition-colors focus:outline-none"
+                        aria-label="Poprzednie"
+                        @click="goPrev"
+                    >
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+
+                    <!-- Next button -->
+                    <button
+                        v-if="hasNext"
+                        class="absolute right-2 md:right-4 p-3 rounded-full bg-black/60 text-white hover:bg-white/20 transition-colors focus:outline-none"
+                        aria-label="Następne"
+                        @click="goNext"
+                    >
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </template>
+            </div>
+
+            <!-- ── Thumbnail strip ────────────────────────────────────── -->
+            <div v-if="total > 1" class="flex-none border-t border-gray-800 bg-black/80 py-2 px-2">
+                <div
+                    ref="thumbsEl"
+                    class="flex gap-2 overflow-x-auto scrollbar-hide justify-start items-center pb-1"
+                    style="scroll-snap-type: x mandatory;"
+                >
+                    <button
+                        v-for="(item, i) in media"
+                        :key="item.id"
+                        class="shrink-0 w-14 h-14 md:w-16 md:h-16 rounded overflow-hidden border-2 transition-all duration-200 focus:outline-none"
+                        :class="i === activeIndex ? 'border-white opacity-100' : 'border-transparent opacity-40 hover:opacity-70'"
+                        style="scroll-snap-align: center;"
+                        :aria-label="`Przejdź do ${i + 1}`"
+                        @click="goTo(i)"
+                    >
+                        <img
+                            v-if="item.type === 'image'"
+                            :src="item.url"
+                            :alt="`Miniatura ${i + 1}`"
+                            class="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                        />
+                        <div v-else class="w-full h-full bg-gray-800 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </div>
                     </button>
                 </div>
             </div>
 
-            <!-- Content Container -->
-            <div class="px-4 py-8 flex flex-col items-center justify-center pointer-events-none">
-                 
-                 <div class="w-full max-w-6xl mx-auto space-y-12 pointer-events-auto">
-                    
-                    <!-- Description -->
-                    <div v-if="project?.description" class="text-center max-w-3xl mx-auto">
-                        <p class="text-lg text-gray-400 font-light leading-relaxed">{{ project.description }}</p>
-                    </div>
-
-                    <!-- Gallery Grid/Stack -->
-                    <div v-if="project?.media && project.media.length > 0" class="space-y-24">
-                         <div v-for="(media, index) in project.media" :key="media.id" class="flex justify-center w-full">
-                            <div class="relative w-full rounded-lg overflow-hidden shadow-2xl bg-gray-900 border border-gray-800 transition-transform duration-500 hover:scale-[1.01]">
-                                 <img
-                                    v-if="media.type === 'image'"
-                                    :src="media.url"
-                                    :alt="project?.title ? `${project.title} – zdjęcie ${index + 1}` : `Zdjęcie z drona ${index + 1}`"
-                                    :class="['transition-all duration-700 ease-out transform w-full h-auto object-contain max-h-[85vh]', isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12']"
-                                    :style="{ transitionDelay: `${index * 100}ms` }"
-                                    :loading="index === 0 ? 'eager' : 'lazy'"
-                                    decoding="async"
-                                />
-                                 <video v-else controls class="w-full h-auto max-h-[85vh]">
-                                     <source :src="media.url" type="video/mp4">
-                                     Your browser does not support the video tag.
-                                 </video>
-                             </div>
-                         </div>
-                    </div>
-                    
-                    <div v-else class="text-center text-gray-500 italic py-12">
-                        Brak mediów w tej galerii.
-                    </div>
-
-                    <!-- Footer Action -->
-                    <div class="text-center py-12 mt-12 border-t border-gray-800">
-                        <button @click="close" class="text-gray-400 hover:text-white text-sm uppercase tracking-[0.2em] font-bold py-4 px-8 border border-gray-700 hover:border-white rounded-full transition-all duration-300">
-                            Zamknij Projekt
-                        </button>
-                    </div>
-
-                 </div>
+            <!-- ── Description (collapsible below strip) ──────────────── -->
+            <div v-if="project?.description" class="flex-none text-center px-4 py-3 border-t border-gray-800/50">
+                <p class="text-sm text-gray-500 font-light leading-relaxed max-w-3xl mx-auto truncate">{{ project.description }}</p>
             </div>
-
         </div>
-    </transition>
+    </Transition>
 </template>
 
 <style scoped>
-.font-manrope {
-    font-family: 'Manrope', 'Inter', sans-serif;
-}
+.font-manrope { font-family: 'Manrope', 'Inter', sans-serif; }
 
 .modal-fade-enter-active, .modal-fade-leave-active {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.3s ease;
 }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
 
-.modal-fade-enter-from, .modal-fade-leave-to {
-    opacity: 0;
-    backdrop-filter: blur(0px);
+.slide-fade-enter-active, .slide-fade-leave-active {
+    transition: all 0.2s ease;
 }
+.slide-fade-enter-from { opacity: 0; transform: scale(0.97); }
+.slide-fade-leave-to   { opacity: 0; transform: scale(1.02); }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
+

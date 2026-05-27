@@ -15,14 +15,19 @@ class ProjectResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'title' => $this->title,
-            'slug' => $this->slug,
-            'description' => $this->description,
-            'is_catalog' => $this->is_catalog,
-            'cover_image_path' => $this->cover_image_path,
-            'media' => ProjectMediaResource::collection($this->whenLoaded('media')),
-            'created_at' => $this->created_at,
+            'id'                   => $this->id,
+            'title'                => $this->title,
+            'slug'                 => $this->slug,
+            'description'          => $this->description,
+            'is_catalog'           => $this->is_catalog,
+            'cover_image_path'     => $this->cover_image_path,
+            'cover_thumbnail_path' => $this->cover_thumbnail_path,
+            // Only the first 2 items – used for the stack-preview in the grid.
+            // Full media is fetched on-demand when a project card is opened.
+            'preview_media'        => ProjectMediaResource::collection(
+                $this->whenLoaded('media', fn () => $this->media->take(2))
+            ),
+            'created_at'           => $this->created_at,
         ];
     }
 }

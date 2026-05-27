@@ -9,9 +9,10 @@ class HomeController extends Controller
 {
     public function index()
     {
+        // Load only the first 2 ready media items per project for the stack-preview.
+        // Full media is fetched on-demand via /api/projects/{slug}/media.
         $projects = \App\Models\Project::with([
             'media' => function ($query) {
-                // Only surface fully-encoded media to the public landing page
                 $query->where('processing_status', 'ready')
                       ->orderBy('sort_order');
             }

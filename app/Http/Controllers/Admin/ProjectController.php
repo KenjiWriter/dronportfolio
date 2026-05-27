@@ -7,6 +7,7 @@ use App\Jobs\CompressVideoJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Intervention\Image\Laravel\Facades\Image;
 
 class ProjectController extends Controller
 {
@@ -50,16 +51,23 @@ class ProjectController extends Controller
         $coverFile = $request->file('cover_image');
         $coverName = 'cover-' . time() . '.' . $coverFile->getClientOriginalExtension();
         $coverFile->move($basePath, $coverName);
-
-        // Save Relative Path to DB
         $dbCoverPath = "Projekty/{$clientSlug}/{$projectSlug}/99-ROBOCZE/{$coverName}";
 
+        // Generate thumbnail (max 800px wide, JPEG 80 %)
+        $thumbName   = 'cover-thumb-' . time() . '.jpg';
+        $dbThumbPath = "Projekty/{$clientSlug}/{$projectSlug}/99-ROBOCZE/{$thumbName}";
+        Image::read(public_path($dbCoverPath))
+            ->scaleDown(800)
+            ->toJpeg(80)
+            ->save(public_path($dbThumbPath));
+
         $project = \App\Models\Project::create([
-            'title' => $validated['title'],
-            'slug' => $projectSlug,
-            'description' => $validated['description'] ?? null,
-            'is_catalog' => $validated['is_catalog'] ?? false,
-            'cover_image_path' => $dbCoverPath,
+            'title'                => $validated['title'],
+            'slug'                 => $projectSlug,
+            'description'         => $validated['description'] ?? null,
+            'is_catalog'          => $validated['is_catalog'] ?? false,
+            'cover_image_path'    => $dbCoverPath,
+            'cover_thumbnail_path' => $dbThumbPath,
         ]);
 
         if ($request->hasFile('gallery_files')) {
@@ -176,15 +184,27 @@ class ProjectController extends Controller
 
         // Handle New Cover Image
         if ($request->hasFile('cover_image')) {
-            // Delete old cover
+            // Delete old cover and old thumbnail
             if ($project->cover_image_path && File::exists(public_path($project->cover_image_path))) {
                 File::delete(public_path($project->cover_image_path));
+            }
+            if ($project->cover_thumbnail_path && File::exists(public_path($project->cover_thumbnail_path))) {
+                File::delete(public_path($project->cover_thumbnail_path));
             }
 
             $coverFile = $request->file('cover_image');
             $coverName = 'cover-' . time() . '.' . $coverFile->getClientOriginalExtension();
             $coverFile->move($basePath, $coverName);
             $data['cover_image_path'] = "Projekty/{$clientSlug}/{$newSlug}/99-ROBOCZE/{$coverName}";
+
+            // Generate new thumbnail
+            $thumbName   = 'cover-thumb-' . time() . '.jpg';
+            $dbThumbPath = "Projekty/{$clientSlug}/{$newSlug}/99-ROBOCZE/{$thumbName}";
+            Image::read(public_path($data['cover_image_path']))
+                ->scaleDown(800)
+                ->toJpeg(80)
+                ->save(public_path($dbThumbPath));
+            $data['cover_thumbnail_path'] = $dbThumbPath;
         }
         else {
             // Keep distinct logic: if we renamed, we already updated cover_image_path in memory/DB, but $data will overwrite.
