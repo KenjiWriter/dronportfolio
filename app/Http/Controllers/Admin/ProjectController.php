@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Intervention\Image\Laravel\Facades\Image;
+use Intervention\Image\Encoders\JpegEncoder;
 
 class ProjectController extends Controller
 {
@@ -56,9 +57,9 @@ class ProjectController extends Controller
         // Generate thumbnail (max 800px wide, JPEG 80 %)
         $thumbName   = 'cover-thumb-' . time() . '.jpg';
         $dbThumbPath = "Projekty/{$clientSlug}/{$projectSlug}/99-ROBOCZE/{$thumbName}";
-        Image::read(public_path($dbCoverPath))
+        Image::decodePath(public_path($dbCoverPath))
             ->scaleDown(800)
-            ->toJpeg(80)
+            ->encode(new JpegEncoder(80))
             ->save(public_path($dbThumbPath));
 
         $project = \App\Models\Project::create([
@@ -200,9 +201,9 @@ class ProjectController extends Controller
             // Generate new thumbnail
             $thumbName   = 'cover-thumb-' . time() . '.jpg';
             $dbThumbPath = "Projekty/{$clientSlug}/{$newSlug}/99-ROBOCZE/{$thumbName}";
-            Image::read(public_path($data['cover_image_path']))
+            Image::decodePath(public_path($data['cover_image_path']))
                 ->scaleDown(800)
-                ->toJpeg(80)
+                ->encode(new JpegEncoder(80))
                 ->save(public_path($dbThumbPath));
             $data['cover_thumbnail_path'] = $dbThumbPath;
         }
