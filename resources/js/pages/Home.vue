@@ -241,6 +241,12 @@ const scrollToSection = (sectionId) => {
                 <div v-else class="text-center py-20">
                     <p class="text-gray-500 text-xl font-light">Realizacje pojawią się wkrótce.</p>
                 </div>
+
+                <div class="mt-12 text-center">
+                    <a :href="route('projects.index')" class="inline-flex items-center px-8 py-3 border border-blue-500 text-blue-300 rounded-full font-semibold tracking-wide hover:bg-blue-500/10 transition-colors">
+                        Przejrzyj wszystkie realizacje
+                    </a>
+                </div>
             </div>
         </section>
 

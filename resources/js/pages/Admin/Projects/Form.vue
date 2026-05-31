@@ -1,16 +1,17 @@
 <script setup>
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, useForm, Link, router } from '@inertiajs/vue3';
-import { ref, onUnmounted } from 'vue';
+import { computed, ref, onUnmounted } from 'vue';
 import { route } from 'ziggy-js';
 
 const props = defineProps({
     project: Object, // Optional, for Edit mode
+    types: Object,
 });
 
 const deleteMedia = (media) => {
     if (confirm('Czy na pewno chcesz usunąć ten plik?')) {
-        router.delete(route('project-media.destroy', media.id));
+        router.delete(route('admin.project-media.destroy', media.id));
     }
 };
 
@@ -21,10 +22,13 @@ const form = useForm({
     title: props.project?.data.title ?? '',
     description: props.project?.data.description ?? '',
     is_catalog: props.project?.data.is_catalog ?? false,
+    project_type_id: props.project?.data.project_type_id ?? '',
     cover_image: null,
     gallery_files: [],
     video_qualities: [],  // parallel array – quality per gallery_files entry
 });
+
+const typeOptions = computed(() => props.types?.data ?? []);
 
 // ─── Incremental file staging ────────────────────────────────────────────────
 
@@ -96,6 +100,10 @@ const formatBytes = (bytes) => {
 // ─── Form submission ─────────────────────────────────────────────────────────
 
 const submit = () => {
+    if (form.project_type_id === '') {
+        form.project_type_id = null;
+    }
+
     // Sync the staged File objects + their qualities into the Inertia form before posting.
     form.gallery_files   = selectedMedia.value.map((m) => m.file);
     form.video_qualities = selectedMedia.value.map((m) => m.isVideo ? m.quality : null);
@@ -139,6 +147,15 @@ const submit = () => {
                             <div v-if="form.errors.description" class="text-red-400 text-sm mt-1">{{ form.errors.description }}</div>
                         </div>
 
+                        <div>
+                            <label for="project_type_id" class="block text-sm font-medium text-gray-300">Typ realizacji</label>
+                            <select id="project_type_id" v-model="form.project_type_id" class="mt-1 block w-full bg-gray-900 border-gray-700 text-white rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                <option value="">Bez typu</option>
+                                <option v-for="type in typeOptions" :key="type.id" :value="type.id">{{ type.name }}</option>
+                            </select>
+                            <div v-if="form.errors.project_type_id" class="text-red-400 text-sm mt-1">{{ form.errors.project_type_id }}</div>
+                        </div>
+
                         <!-- Is Catalog Checkbox -->
                         <div class="flex items-start">
                             <div class="flex items-center h-5">
@@ -154,8 +171,8 @@ const submit = () => {
                         <div>
                              <label class="block text-sm font-medium text-gray-300">Okładka (Główna miniaturka)</label>
                              <div class="mt-1 flex items-center gap-4">
-                                 <div v-if="props.project?.data.cover_image_path" class="w-32 h-20 bg-gray-700 rounded overflow-hidden">
-                                     <img :src="'/' + props.project.data.cover_image_path" class="w-full h-full object-cover opacity-75" />
+                                 <div v-if="props.project?.data.cover_image_url || props.project?.data.cover_image_path" class="w-32 h-20 bg-gray-700 rounded overflow-hidden">
+                                     <img :src="props.project.data.cover_image_url || ('/' + props.project.data.cover_image_path)" class="w-full h-full object-cover opacity-75" />
                                  </div>
                                  <input type="file" @change="form.cover_image = $event.target.files[0]" ref="coverInput" class="block w-full text-sm text-gray-400
                                     file:mr-4 file:py-2 file:px-4

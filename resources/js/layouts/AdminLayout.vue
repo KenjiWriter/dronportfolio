@@ -56,6 +56,19 @@ const toggleUserMenu = () => {
                     Realizacje
                 </Link>
 
+                <Link :href="route('admin.project-types.index')"
+                    :class="[
+                        'flex items-center px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 group',
+                        route().current('admin.project-types.*')
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    ]">
+                    <svg class="mr-3 h-5 w-5 flex-shrink-0" :class="route().current('admin.project-types.*') ? 'text-white' : 'text-gray-400 group-hover:text-white'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 12h10M7 17h6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Typy realizacji
+                </Link>
+
                 <Link :href="route('admin.leads.index')"
                     :class="[
                         'flex items-center px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 group',
@@ -128,6 +141,11 @@ const toggleUserMenu = () => {
                         class="block px-3 py-2 rounded-md text-base font-medium transition-colors"
                         :class="route().current('admin.projects.*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'">
                         Realizacje
+                    </Link>
+                    <Link :href="route('admin.project-types.index')" 
+                        class="block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                        :class="route().current('admin.project-types.*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'">
+                        Typy realizacji
                     </Link>
                      <Link :href="route('admin.leads.index')" 
                         class="block px-3 py-2 rounded-md text-base font-medium transition-colors"

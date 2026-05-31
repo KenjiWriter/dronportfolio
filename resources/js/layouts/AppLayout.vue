@@ -17,6 +17,8 @@ onMounted(() => {
             >
                 <a href="/" class="text-xl font-bold tracking-wider" aria-label="HorizonShot – strona główna">HORIZONSHOT</a>
                 <ul class="hidden md:flex gap-6 text-sm font-medium uppercase tracking-widest list-none p-0 m-0">
+                    <li><a href="/" class="hover:text-gray-300 transition">Start</a></li>
+                    <li><a href="/projects" class="hover:text-gray-300 transition">Realizacje</a></li>
                     <li><a href="#portfolio" class="hover:text-gray-300 transition">Portfolio</a></li>
                     <li><a href="#contact" class="hover:text-gray-300 transition">Kontakt</a></li>
                 </ul>

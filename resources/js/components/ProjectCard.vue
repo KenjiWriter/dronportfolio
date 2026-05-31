@@ -18,8 +18,14 @@ const galleryStack = computed(() => {
 
 // Use the lightweight thumbnail for the grid; fall back to the full cover image
 const coverSrc = computed(() => {
+    if (props.project.cover_thumbnail_url) {
+        return props.project.cover_thumbnail_url;
+    }
     if (props.project.cover_thumbnail_path) {
         return '/' + props.project.cover_thumbnail_path;
+    }
+    if (props.project.cover_image_url) {
+        return props.project.cover_image_url;
     }
     return '/' + props.project.cover_image_path;
 });
