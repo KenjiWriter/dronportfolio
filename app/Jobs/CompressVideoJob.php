@@ -10,6 +10,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use ProtoneMedia\LaravelFFMpeg\Support\FFMpeg;
 use FFMpeg\Format\Video\X264;
 
@@ -39,7 +40,7 @@ class CompressVideoJob implements ShouldQueue
 
     /**
      * @param int    $mediaId          ProjectMedia primary key
-     * @param string $sourceRelPath    Path relative to public_folder disk root (e.g. "Projekty/portfolio/slug/99-ROBOCZE/raw.mp4")
+    * @param string $sourceRelPath    Path relative to public disk root (e.g. "Projekty/portfolio/slug/99-ROBOCZE/raw.mp4")
      * @param string $outputRelPath    Relative path for the compressed output file (e.g. "Projekty/…/compressed.mp4")
      * @param string $quality          '1080p' | '720p' | '480p'
      */
@@ -52,7 +53,7 @@ class CompressVideoJob implements ShouldQueue
 
     public function handle(): void
     {
-        $media = ProjectMedia::find($this->mediaId);
+        $media = ProjectMedia::query()->find($this->mediaId);
 
         if (! $media) {
             Log::error("CompressVideoJob: ProjectMedia #{$this->mediaId} not found – aborting.");
@@ -71,9 +72,9 @@ class CompressVideoJob implements ShouldQueue
                 ->setKiloBitrate($settings['video_kbps'])
                 ->setAudioKiloBitrate($settings['audio_kbps']);
 
-            // Ensure the output directory exists inside the public folder
+            // Ensure the output directory exists inside storage/app/public
             File::ensureDirectoryExists(
-                public_path(dirname($this->outputRelPath)),
+                Storage::disk('public')->path(dirname($this->outputRelPath)),
                 0755,
                 true
             );
@@ -81,7 +82,7 @@ class CompressVideoJob implements ShouldQueue
             // Scale down to fit within the target bounding box while:
             //   • preserving aspect ratio  (min ratio)
             //   • keeping dimensions divisible by 2 (H.264 requirement)
-            FFMpeg::fromDisk('public_folder')
+            FFMpeg::fromDisk('public')
                 ->open($this->sourceRelPath)
                 ->addFilter(function ($filters) use ($w, $h) {
                     $filters->custom(
@@ -89,20 +90,20 @@ class CompressVideoJob implements ShouldQueue
                     );
                 })
                 ->export()
-                ->toDisk('public_folder')
+                ->toDisk('public')
                 ->inFormat($format)
                 ->save($this->outputRelPath);
 
             Log::info("CompressVideoJob: Done → {$this->outputRelPath}");
 
             // Swap to the compressed file and mark as ready
-            $media->update([
+            ProjectMedia::query()->whereKey($this->mediaId)->update([
                 'file_path'         => $this->outputRelPath,
                 'processing_status' => 'ready',
             ]);
 
             // Remove the raw original to free disk space
-            $rawAbsolute = public_path($this->sourceRelPath);
+            $rawAbsolute = Storage::disk('public')->path($this->sourceRelPath);
             if (File::exists($rawAbsolute)) {
                 File::delete($rawAbsolute);
             }
@@ -110,7 +111,7 @@ class CompressVideoJob implements ShouldQueue
         } catch (\Throwable $e) {
             Log::error("CompressVideoJob: Compression FAILED for media #{$this->mediaId}: {$e->getMessage()}");
 
-            $media->update(['processing_status' => 'failed']);
+            ProjectMedia::query()->whereKey($this->mediaId)->update(['processing_status' => 'failed']);
 
             throw $e; // Allow queue to retry / record the failure
         }
@@ -121,7 +122,7 @@ class CompressVideoJob implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        ProjectMedia::find($this->mediaId)?->update(['processing_status' => 'failed']);
+        ProjectMedia::query()->whereKey($this->mediaId)->update(['processing_status' => 'failed']);
 
         Log::critical(
             "CompressVideoJob: Permanently failed for media #{$this->mediaId}: {$exception->getMessage()}"

@@ -12,15 +12,27 @@ class HomeController extends Controller
         // Load only projects – no media eager-loaded here.
         // We then attach at most 2 ready preview items per project in a single query,
         // instead of pulling every media row and discarding them in PHP.
-        $projects = \App\Models\Project::orderBy('created_at', 'desc')->get();
+        $projects = \App\Models\Project::with('projectType')
+            ->where('is_featured', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         if ($projects->isNotEmpty()) {
             $projectIds = $projects->pluck('id')->all();
 
-            $previewByProject = \App\Models\ProjectMedia::whereIn('project_id', $projectIds)
+            $previewByProject = \App\Models\ProjectMedia::query()->where(function ($query) use ($projectIds) {
+                    foreach ($projectIds as $index => $projectId) {
+                        if ($index === 0) {
+                            $query->where('project_id', $projectId);
+                            continue;
+                        }
+
+                        $query->orWhere('project_id', $projectId);
+                    }
+                })
                 ->where('processing_status', 'ready')
-                ->orderBy('project_id')
-                ->orderBy('sort_order')
+                ->orderBy('project_id', 'asc')
+                ->orderBy('sort_order', 'asc')
                 ->select(['id', 'project_id', 'file_path', 'file_type', 'sort_order', 'processing_status'])
                 ->get()
                 ->groupBy('project_id')

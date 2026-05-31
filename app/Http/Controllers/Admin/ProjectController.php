@@ -3,71 +3,79 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProjectResource;
 use App\Jobs\CompressVideoJob;
+use App\Models\Project;
+use App\Models\ProjectType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Intervention\Image\Laravel\Facades\Image;
 use Intervention\Image\Encoders\JpegEncoder;
+use Intervention\Image\Laravel\Facades\Image;
 
 class ProjectController extends Controller
 {
+    private const WORKING_FOLDER = '99-ROBOCZE';
+
     public function index()
     {
-        $projects = \App\Models\Project::orderBy('created_at', 'desc')->get();
+        $projects = Project::with('projectType')->orderBy('created_at', 'desc')->get();
+
         return \Inertia\Inertia::render('Admin/Projects/Index', [
-            'projects' => \App\Http\Resources\ProjectResource::collection($projects),
+            'projects' => ProjectResource::collection($projects),
         ]);
     }
 
     public function create()
     {
-        return \Inertia\Inertia::render('Admin/Projects/Create');
+        $types = ProjectType::query()->orderBy('name', 'asc')->get(['id', 'name', 'slug']);
+
+        return \Inertia\Inertia::render('Admin/Projects/Create', [
+            'types' => ['data' => $types],
+        ]);
     }
 
-    public function store(\Illuminate\Http\Request $request)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'client_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'is_catalog' => 'boolean',
-            'cover_image' => 'required|image|max:20480', // 20MB
-            'gallery_files.*' => 'nullable|file|mimes:jpg,jpeg,png,mp4|max:51200', // 50MB
+            'project_type_id' => 'nullable|exists:project_types,id',
+            'cover_image' => 'required|image|max:20480',
+            'gallery_files.*' => 'nullable|file|mimes:jpg,jpeg,png,mp4|max:51200',
             'video_qualities.*' => 'nullable|in:1080p,720p,480p',
         ]);
 
-        $projectTitle = $validated['title'];
-        $projectSlug = Str::slug($projectTitle);
-        $clientSlug = 'portfolio'; // Default or derived from client_name if added later
+        $projectSlug = Str::slug($validated['title']);
+        $clientSlug = 'portfolio';
+        $workingRelative = $this->workingRelative($clientSlug, $projectSlug);
+        $basePath = $this->storageAbsolute($workingRelative);
 
-        // Define Base Path
-        $basePath = public_path("Projekty/{$clientSlug}/{$projectSlug}/99-ROBOCZE");
         File::ensureDirectoryExists($basePath, 0755, true);
-
-        // Generate .url Shortcut
         $this->generateUrlShortcut($basePath, $projectSlug);
 
-        // Handle Cover Image
         $coverFile = $request->file('cover_image');
         $coverName = 'cover-' . time() . '.' . $coverFile->getClientOriginalExtension();
         $coverFile->move($basePath, $coverName);
-        $dbCoverPath = "Projekty/{$clientSlug}/{$projectSlug}/99-ROBOCZE/{$coverName}";
 
-        // Generate thumbnail (max 800px wide, JPEG 80 %)
-        $thumbName   = 'cover-thumb-' . time() . '.jpg';
-        $dbThumbPath = "Projekty/{$clientSlug}/{$projectSlug}/99-ROBOCZE/{$thumbName}";
-        Image::decodePath(public_path($dbCoverPath))
+        $dbCoverPath = $workingRelative . '/' . $coverName;
+        $thumbName = 'cover-thumb-' . time() . '.jpg';
+        $dbThumbPath = $workingRelative . '/' . $thumbName;
+
+        Image::decodePath($this->storageAbsolute($dbCoverPath))
             ->scaleDown(800)
             ->encode(new JpegEncoder(80))
-            ->save(public_path($dbThumbPath));
+            ->save($this->storageAbsolute($dbThumbPath));
 
-        $project = \App\Models\Project::create([
-            'title'                => $validated['title'],
-            'slug'                 => $projectSlug,
-            'description'         => $validated['description'] ?? null,
-            'is_catalog'          => $validated['is_catalog'] ?? false,
-            'cover_image_path'    => $dbCoverPath,
+        $project = Project::create([
+            'title' => $validated['title'],
+            'slug' => $projectSlug,
+            'description' => $validated['description'] ?? null,
+            'is_catalog' => $validated['is_catalog'] ?? false,
+            'project_type_id' => $validated['project_type_id'] ?? null,
+            'cover_image_path' => $dbCoverPath,
             'cover_thumbnail_path' => $dbThumbPath,
         ]);
 
@@ -76,37 +84,31 @@ class ProjectController extends Controller
 
             foreach ($request->file('gallery_files') as $index => $file) {
                 $isVideo = str_starts_with($file->getMimeType(), 'video');
-                $type    = $isVideo ? 'video' : 'image';
-                $name    = 'gallery-' . $index . '-' . time() . '.' . $file->getClientOriginalExtension();
+                $name = 'gallery-' . $index . '-' . time() . '.' . $file->getClientOriginalExtension();
 
                 $file->move($basePath, $name);
-                $dbPath = "Projekty/{$clientSlug}/{$projectSlug}/99-ROBOCZE/{$name}";
+                $dbPath = $workingRelative . '/' . $name;
 
                 if ($isVideo) {
-                    $quality          = $videoQualities[$index] ?? '720p';
-                    $compressedName   = 'gallery-' . $index . '-' . time() . '-compressed.mp4';
-                    $compressedDbPath = "Projekty/{$clientSlug}/{$projectSlug}/99-ROBOCZE/{$compressedName}";
+                    $quality = $videoQualities[$index] ?? '720p';
+                    $compressedName = 'gallery-' . $index . '-' . time() . '-compressed.mp4';
+                    $compressedDbPath = $workingRelative . '/' . $compressedName;
 
                     $media = $project->media()->create([
-                        'file_path'          => $dbPath,
+                        'file_path' => $dbPath,
                         'original_file_path' => $dbPath,
-                        'file_type'          => $type,
-                        'sort_order'         => $index,
-                        'processing_status'  => 'processing',
-                        'video_quality'      => $quality,
+                        'file_type' => 'video',
+                        'sort_order' => $index,
+                        'processing_status' => 'processing',
+                        'video_quality' => $quality,
                     ]);
 
-                    CompressVideoJob::dispatch(
-                        $media->id,
-                        $dbPath,             // source (raw upload) relative path
-                        $compressedDbPath,   // destination relative path
-                        $quality
-                    );
+                    CompressVideoJob::dispatch($media->id, $dbPath, $compressedDbPath, $quality);
                 } else {
                     $project->media()->create([
-                        'file_path'         => $dbPath,
-                        'file_type'         => $type,
-                        'sort_order'        => $index,
+                        'file_path' => $dbPath,
+                        'file_type' => 'image',
+                        'sort_order' => $index,
                         'processing_status' => 'ready',
                     ]);
                 }
@@ -116,22 +118,25 @@ class ProjectController extends Controller
         return redirect()->route('admin.projects.index')->with('success', 'Projekt został utworzony.');
     }
 
-    public function edit(\App\Models\Project $project)
+    public function edit(Project $project)
     {
-        $project->load('media');
+        $types = ProjectType::query()->orderBy('name', 'asc')->get(['id', 'name', 'slug']);
+
+        $project->load(['media', 'projectType']);
+
         return \Inertia\Inertia::render('Admin/Projects/Form', [
-            'project' => new \App\Http\Resources\ProjectResource($project),
+            'project' => new ProjectResource($project),
+            'types' => ['data' => $types],
         ]);
     }
 
-    public function update(\Illuminate\Http\Request $request, \App\Models\Project $project)
+    public function update(Request $request, Project $project)
     {
-        \Illuminate\Support\Facades\Log::info('Project Update Request:', $request->all());
-        \Illuminate\Support\Facades\Log::info('Project Update Files:', $request->allFiles());
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'is_catalog' => 'boolean',
+            'project_type_id' => 'nullable|exists:project_types,id',
             'cover_image' => 'nullable|image|max:20480',
             'gallery_files.*' => 'nullable|file|mimes:jpg,jpeg,png,mp4|max:51200',
             'video_qualities.*' => 'nullable|in:1080p,720p,480p',
@@ -141,37 +146,40 @@ class ProjectController extends Controller
         $newSlug = Str::slug($validated['title']);
         $clientSlug = 'portfolio';
 
-        // Paths
-        $oldPath = public_path("Projekty/{$clientSlug}/{$oldSlug}/99-ROBOCZE");
-        $newPath = public_path("Projekty/{$clientSlug}/{$newSlug}/99-ROBOCZE");
+        $oldRootRelative = $this->projectRootRelative($clientSlug, $oldSlug);
+        $newRootRelative = $this->projectRootRelative($clientSlug, $newSlug);
 
-        // Handle Slug Change -> Rename Directory
-        if ($oldSlug !== $newSlug && File::exists($oldPath)) {
-            // Create parent dir if missing
-            File::ensureDirectoryExists(dirname($newPath), 0755, true);
+        $oldProjectRoot = $this->storageAbsolute($oldRootRelative);
+        $newProjectRoot = $this->storageAbsolute($newRootRelative);
 
-            // Move the entire project folder (Projekty/portfolio/{slug})
-            $oldProjectRoot = public_path("Projekty/{$clientSlug}/{$oldSlug}");
-            $newProjectRoot = public_path("Projekty/{$clientSlug}/{$newSlug}");
+        if ($oldSlug !== $newSlug && File::exists($oldProjectRoot)) {
+            File::ensureDirectoryExists(dirname($newProjectRoot), 0755, true);
+            File::move($oldProjectRoot, $newProjectRoot);
 
-            if (File::exists($oldProjectRoot)) {
-                File::move($oldProjectRoot, $newProjectRoot);
+            if ($project->cover_image_path) {
+                $project->cover_image_path = str_replace($oldRootRelative, $newRootRelative, $project->cover_image_path);
+            }
+            if ($project->cover_thumbnail_path) {
+                $project->cover_thumbnail_path = str_replace($oldRootRelative, $newRootRelative, $project->cover_thumbnail_path);
             }
 
-            // Update DB Paths
-            $project->cover_image_path = str_replace($oldSlug, $newSlug, $project->cover_image_path);
             foreach ($project->media as $media) {
-                $media->update([
-                    'file_path' => str_replace($oldSlug, $newSlug, $media->file_path)
-                ]);
+                $payload = [
+                    'file_path' => str_replace($oldRootRelative, $newRootRelative, $media->file_path),
+                ];
+
+                if ($media->original_file_path) {
+                    $payload['original_file_path'] = str_replace($oldRootRelative, $newRootRelative, $media->original_file_path);
+                }
+
+                $media->update($payload);
             }
         }
 
-        // Ensure new path exists (in case it's new or just moved)
-        $basePath = $newPath;
+        $workingRelative = $this->workingRelative($clientSlug, $newSlug);
+        $basePath = $this->storageAbsolute($workingRelative);
         File::ensureDirectoryExists($basePath, 0755, true);
 
-        // Regenerate .url shortcut if slug changed
         if ($oldSlug !== $newSlug) {
             $this->generateUrlShortcut($basePath, $newSlug);
         }
@@ -181,79 +189,70 @@ class ProjectController extends Controller
             'slug' => $newSlug,
             'description' => $validated['description'] ?? null,
             'is_catalog' => $validated['is_catalog'] ?? false,
+            'project_type_id' => $validated['project_type_id'] ?? null,
         ];
 
-        // Handle New Cover Image
         if ($request->hasFile('cover_image')) {
-            // Delete old cover and old thumbnail
-            if ($project->cover_image_path && File::exists(public_path($project->cover_image_path))) {
-                File::delete(public_path($project->cover_image_path));
+            $oldCoverAbsolute = $this->resolveAbsoluteExistingPath($project->cover_image_path);
+            if ($oldCoverAbsolute && File::exists($oldCoverAbsolute)) {
+                File::delete($oldCoverAbsolute);
             }
-            if ($project->cover_thumbnail_path && File::exists(public_path($project->cover_thumbnail_path))) {
-                File::delete(public_path($project->cover_thumbnail_path));
+
+            $oldThumbAbsolute = $this->resolveAbsoluteExistingPath($project->cover_thumbnail_path);
+            if ($oldThumbAbsolute && File::exists($oldThumbAbsolute)) {
+                File::delete($oldThumbAbsolute);
             }
 
             $coverFile = $request->file('cover_image');
             $coverName = 'cover-' . time() . '.' . $coverFile->getClientOriginalExtension();
             $coverFile->move($basePath, $coverName);
-            $data['cover_image_path'] = "Projekty/{$clientSlug}/{$newSlug}/99-ROBOCZE/{$coverName}";
 
-            // Generate new thumbnail
-            $thumbName   = 'cover-thumb-' . time() . '.jpg';
-            $dbThumbPath = "Projekty/{$clientSlug}/{$newSlug}/99-ROBOCZE/{$thumbName}";
-            Image::decodePath(public_path($data['cover_image_path']))
+            $data['cover_image_path'] = $workingRelative . '/' . $coverName;
+
+            $thumbName = 'cover-thumb-' . time() . '.jpg';
+            $data['cover_thumbnail_path'] = $workingRelative . '/' . $thumbName;
+
+            Image::decodePath($this->storageAbsolute($data['cover_image_path']))
                 ->scaleDown(800)
                 ->encode(new JpegEncoder(80))
-                ->save(public_path($dbThumbPath));
-            $data['cover_thumbnail_path'] = $dbThumbPath;
-        }
-        else {
-            // Keep distinct logic: if we renamed, we already updated cover_image_path in memory/DB, but $data will overwrite.
-            // Ensure we safeguard the potentially updated path.
-            if ($oldSlug !== $newSlug) {
-                $data['cover_image_path'] = $project->cover_image_path;
-            }
+                ->save($this->storageAbsolute($data['cover_thumbnail_path']));
+        } elseif ($oldSlug !== $newSlug) {
+            $data['cover_image_path'] = $project->cover_image_path;
+            $data['cover_thumbnail_path'] = $project->cover_thumbnail_path;
         }
 
         $project->update($data);
 
-        // Handle New Gallery Files
         if ($request->hasFile('gallery_files')) {
             $videoQualities = $request->input('video_qualities', []);
 
             foreach ($request->file('gallery_files') as $index => $file) {
                 $isVideo = str_starts_with($file->getMimeType(), 'video');
-                $type    = $isVideo ? 'video' : 'image';
-                $name    = 'gallery-' . $index . '-' . time() . '.' . $file->getClientOriginalExtension();
+                $name = 'gallery-' . $index . '-' . time() . '.' . $file->getClientOriginalExtension();
 
                 $file->move($basePath, $name);
-                $dbPath = "Projekty/{$clientSlug}/{$newSlug}/99-ROBOCZE/{$name}";
+                $dbPath = $workingRelative . '/' . $name;
 
                 if ($isVideo) {
-                    $quality          = $videoQualities[$index] ?? '720p';
-                    $compressedName   = 'gallery-' . $index . '-' . time() . '-compressed.mp4';
-                    $compressedDbPath = "Projekty/{$clientSlug}/{$newSlug}/99-ROBOCZE/{$compressedName}";
+                    $quality = $videoQualities[$index] ?? '720p';
+                    $compressedName = 'gallery-' . $index . '-' . time() . '-compressed.mp4';
+                    $compressedDbPath = $workingRelative . '/' . $compressedName;
 
                     $media = $project->media()->create([
-                        'file_path'          => $dbPath,
+                        'file_path' => $dbPath,
                         'original_file_path' => $dbPath,
-                        'file_type'          => $type,
-                        'sort_order'         => $index,
-                        'processing_status'  => 'processing',
-                        'video_quality'      => $quality,
+                        'file_type' => 'video',
+                        'sort_order' => $index,
+                        'processing_status' => 'processing',
+                        'video_quality' => $quality,
                     ]);
 
-                    CompressVideoJob::dispatch(
-                        $media->id,
-                        $dbPath,
-                        $compressedDbPath,
-                        $quality
-                    );
+                    CompressVideoJob::dispatch($media->id, $dbPath, $compressedDbPath, $quality);
                 } else {
                     $project->media()->create([
-                        'file_path'         => $dbPath,
-                        'file_type'         => $type,
-                        'sort_order'        => $index,
+                        'file_path' => $dbPath,
+                        'file_type' => 'image',
+                        'sort_order' => $index,
                         'processing_status' => 'ready',
                     ]);
                 }
@@ -263,26 +262,73 @@ class ProjectController extends Controller
         return redirect()->route('admin.projects.index')->with('success', 'Projekt został zaktualizowany.');
     }
 
-    public function destroy(\App\Models\Project $project)
+    public function destroy(Project $project)
     {
-        $clientSlug = 'portfolio'; // Consistent with store/update
-        $projectPath = public_path("Projekty/{$clientSlug}/{$project->slug}");
+        $clientSlug = 'portfolio';
+        $storageProjectPath = $this->storageAbsolute($this->projectRootRelative($clientSlug, $project->slug));
+        $legacyPublicPath = public_path($this->projectRootRelative($clientSlug, $project->slug));
 
-        if (File::exists($projectPath)) {
-            File::deleteDirectory($projectPath);
+        if (File::exists($storageProjectPath)) {
+            File::deleteDirectory($storageProjectPath);
         }
 
-        $project->delete();
+        if (File::exists($legacyPublicPath)) {
+            File::deleteDirectory($legacyPublicPath);
+        }
+
+        Project::query()->whereKey($project->getKey())->delete();
+
         return redirect()->route('admin.projects.index')->with('success', 'Projekt został usunięty.');
     }
 
-    /**
-     * Generate a .url shortcut file for Windows.
-     */
-    private function generateUrlShortcut($path, $slug)
+    public function toggleFeatured(Project $project)
     {
-        $url = route('project.show', $slug); // Make sure this route exists or use url("/project/{$slug}")
+        $project->update([
+            'is_featured' => ! $project->is_featured,
+        ]);
+
+        return back()->with('success', 'Status wyróżnienia projektu został zmieniony.');
+    }
+
+    private function generateUrlShortcut(string $absoluteFolderPath, string $slug): void
+    {
+        $url = route('project.show', $slug);
         $content = "[InternetShortcut]\r\nURL={$url}\r\n";
-        File::put("{$path}/Link-do-projektu.url", $content);
+
+        File::put($absoluteFolderPath . '/Link-do-projektu.url', $content);
+    }
+
+    private function projectRootRelative(string $clientSlug, string $projectSlug): string
+    {
+        return "Projekty/{$clientSlug}/{$projectSlug}";
+    }
+
+    private function workingRelative(string $clientSlug, string $projectSlug): string
+    {
+        return $this->projectRootRelative($clientSlug, $projectSlug) . '/' . self::WORKING_FOLDER;
+    }
+
+    private function storageAbsolute(string $relativePath): string
+    {
+        return storage_path('app/public/' . ltrim($relativePath, '/'));
+    }
+
+    private function resolveAbsoluteExistingPath(?string $relativePath): ?string
+    {
+        if (! $relativePath) {
+            return null;
+        }
+
+        $storage = $this->storageAbsolute($relativePath);
+        if (File::exists($storage)) {
+            return $storage;
+        }
+
+        $legacyPublic = public_path($relativePath);
+        if (File::exists($legacyPublic)) {
+            return $legacyPublic;
+        }
+
+        return null;
     }
 }
