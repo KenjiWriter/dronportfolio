@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     Route::get('/project-types', [\App\Http\Controllers\Admin\ProjectTypeController::class, 'index'])->name('project-types.index');
     Route::post('/project-types', [\App\Http\Controllers\Admin\ProjectTypeController::class, 'store'])->name('project-types.store');
+    Route::patch('/project-types/{projectType}', [\App\Http\Controllers\Admin\ProjectTypeController::class, 'update'])->name('project-types.update');
     Route::delete('/project-types/{projectType}', [\App\Http\Controllers\Admin\ProjectTypeController::class, 'destroy'])->name('project-types.destroy');
 
     Route::delete('/project-media/{projectMedia}', [\App\Http\Controllers\Admin\ProjectMediaController::class, 'destroy'])->name('project-media.destroy');

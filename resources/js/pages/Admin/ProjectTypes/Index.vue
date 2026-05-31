@@ -2,6 +2,7 @@
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
+import { ref } from 'vue';
 
 const props = defineProps({
     types: Object,
@@ -11,6 +12,9 @@ const form = useForm({
     name: '',
 });
 
+const editTypeId = ref(null);
+const editName = ref('');
+
 const submit = () => {
     form.post(route('admin.project-types.store'), {
         preserveScroll: true,
@@ -19,10 +23,30 @@ const submit = () => {
 };
 
 const removeType = (type) => {
+    if ((type.projects_count ?? 0) > 0) return;
     if (!confirm(`Usunac typ "${type.name}"?`)) return;
 
     router.delete(route('admin.project-types.destroy', type.id), {
         preserveScroll: true,
+    });
+};
+
+const startEdit = (type) => {
+    editTypeId.value = type.id;
+    editName.value = type.name;
+};
+
+const cancelEdit = () => {
+    editTypeId.value = null;
+    editName.value = '';
+};
+
+const saveEdit = (type) => {
+    router.patch(route('admin.project-types.update', type.id), {
+        name: editName.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => cancelEdit(),
     });
 };
 </script>
@@ -68,17 +92,50 @@ const removeType = (type) => {
                             class="flex items-center justify-between bg-gray-900 border border-gray-700 rounded-md px-4 py-3"
                         >
                             <div>
-                                <div class="text-white font-medium">{{ type.name }}</div>
+                                <div v-if="editTypeId !== type.id" class="text-white font-medium">{{ type.name }}</div>
+                                <form v-else @submit.prevent="saveEdit(type)" class="flex items-center gap-2">
+                                    <input
+                                        v-model="editName"
+                                        type="text"
+                                        class="bg-gray-800 border border-gray-600 text-white rounded-md px-3 py-1 text-sm focus:border-blue-500 focus:ring-blue-500"
+                                    />
+                                    <button
+                                        type="submit"
+                                        class="text-green-400 hover:text-green-300 text-sm font-semibold"
+                                    >
+                                        Zapisz
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="text-gray-400 hover:text-gray-300 text-sm"
+                                        @click="cancelEdit"
+                                    >
+                                        Anuluj
+                                    </button>
+                                </form>
                                 <div class="text-xs text-gray-400">/{{ type.slug }}</div>
+                                <div class="text-xs text-gray-500 mt-1">Przypisane realizacje: {{ type.projects_count ?? 0 }}</div>
                             </div>
 
-                            <button
-                                type="button"
-                                class="text-red-400 hover:text-red-300 text-sm font-semibold"
-                                @click="removeType(type)"
-                            >
-                                Usun
-                            </button>
+                            <div class="flex items-center gap-3">
+                                <button
+                                    v-if="editTypeId !== type.id"
+                                    type="button"
+                                    class="text-blue-400 hover:text-blue-300 text-sm font-semibold"
+                                    @click="startEdit(type)"
+                                >
+                                    Edytuj
+                                </button>
+
+                                <button
+                                    type="button"
+                                    :disabled="(type.projects_count ?? 0) > 0"
+                                    class="text-red-400 hover:text-red-300 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                                    @click="removeType(type)"
+                                >
+                                    Usun
+                                </button>
+                            </div>
                         </li>
                     </ul>
                 </div>
