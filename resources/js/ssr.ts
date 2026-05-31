@@ -17,8 +17,8 @@ createServer(
             title: (title) => (title ? `${title} - ${appName}` : appName),
             resolve: (name) =>
                 resolvePageComponent(
-                    `./Pages/${name}.vue`,
-                    import.meta.glob<DefineComponent>('./Pages/**/*.vue'),
+                    `./pages/${name}.vue`,
+                    import.meta.glob<DefineComponent>('./pages/**/*.vue'),
                 ),
             setup: ({ App, props, plugin }) => {
                 const Ziggy = (props.initialPage.props as any).ziggy;
